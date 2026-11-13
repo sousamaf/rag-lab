@@ -1,0 +1,65 @@
+name: Origem dos PRs para main
+
+on:
+  pull_request_target:
+    branches: [main]
+    types: [opened, synchronize, reopened, edited, ready_for_review]
+
+# Executa o workflow da main, sem checkout nem execução do código do PR.
+permissions:
+  statuses: write
+
+jobs:
+  validate-main-source:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Exigir develop do mesmo repositório
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: python
+        run: |
+          import json
+          import os
+          import urllib.request
+
+          with open(os.environ["GITHUB_EVENT_PATH"], encoding="utf-8") as event_file:
+              pr = json.load(event_file)["pull_request"]
+
+          repository = os.environ["GITHUB_REPOSITORY"]
+          head = pr["head"]
+          allowed = (
+              pr["base"]["ref"] == "main"
+              and head["ref"] == "develop"
+              and (head.get("repo") or {}).get("full_name") == repository
+          )
+          description = (
+              "Origem permitida: develop deste repositório."
+              if allowed
+              else "A main aceita apenas PRs da develop deste repositório."
+          )
+          # Publica no SHA do PR: pull_request_target usa o SHA da branch base.
+          payload = {
+              "state": "success" if allowed else "failure",
+              "context": "main-source-develop",
+              "description": description,
+              "target_url": (
+                  f"{os.environ['GITHUB_SERVER_URL']}/{repository}"
+                  f"/actions/runs/{os.environ['GITHUB_RUN_ID']}"
+              ),
+          }
+          request = urllib.request.Request(
+              f"{os.environ['GITHUB_API_URL']}/repos/{repository}/statuses/{head['sha']}",
+              data=json.dumps(payload).encode("utf-8"),
+              headers={
+                  "Authorization": f"Bearer {os.environ['GH_TOKEN']}",
+                  "Accept": "application/vnd.github+json",
+                  "X-GitHub-Api-Version": "2022-11-28",
+              },
+              method="POST",
+          )
+          with urllib.request.urlopen(request, timeout=30) as response:
+              response.read()
+          print(description)
+          if not allowed:
+              raise SystemExit(1)
