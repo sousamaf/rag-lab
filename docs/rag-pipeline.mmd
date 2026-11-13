@@ -1,0 +1,35 @@
+flowchart TB
+    accTitle: Pipeline modular do Laboratório RAG
+    accDescr: A consulta passa por preparação, recuperação e contexto. Cada módulo desativado é ignorado por bypass. O contexto com fontes orienta a geração final.
+
+    Entrada["Pergunta + atributos JSON"] --> Preparar
+    YAML["Configuração YAML<br/>lida ao iniciar"] -.-> Switch["Cada módulo:<br/>enabled → executar<br/>disabled → bypass"]
+
+    subgraph Preparar["1. Preparar a consulta"]
+        MQ["Multi-query"] --> HY["HyDE"] --> DC["Decomposição"]
+    end
+    Preparar --> Consultas["Pergunta original + consultas derivadas"]
+    Consultas --> TF["TF-IDF"]
+    Consultas --> BM["BM25"]
+    Consultas --> EM["Embedding"]
+    Banco[("PostgreSQL + pgvector")] --> TF
+    Banco --> BM
+    Banco --> EM
+    TF --> Rankings["Candidatos por recuperador"]
+    BM --> Rankings
+    EM --> Rankings
+    Rankings --> Fusao{"Hybrid ativo?"}
+    Fusao -->|sim| RRF["Fusão RRF"]
+    Fusao -->|não| RR["Seleção round-robin"]
+    RRF --> Contexto
+    RR --> Contexto
+
+    subgraph Contexto["3. Preparar o contexto"]
+        RE["Reranking"] --> SE["Sentence Window"] --> CO["Compressão"]
+    end
+    Contexto --> Fontes["Contexto limitado + fontes numeradas"]
+    Fontes --> Gerar["LLM configurável via LangChain"]
+    Gerar --> Saida["Resposta + evidências + trace JSON"]
+
+    classDef blue fill:#eff6ff,stroke:#2563eb,color:#1e3a8a
+    class TF,BM,EM,RRF,MQ,HY,DC,RE,SE,CO blue

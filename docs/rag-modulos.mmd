@@ -1,0 +1,62 @@
+flowchart LR
+    RAG["RAG"]
+    TFIDF["TF-IDF"]
+    BM25["BM25"]
+    Embedding["Embeddings"]
+    Hybrid["Hybrid<br/>Combinar busca lexical e semântica"]
+    Reranking["Reranking<br/>Reordenar e selecionar os resultados"]
+    Multi-query["Multi-query<br/>Pesquisar diferentes reformulações"]
+    HyDE["HyDE<br/>Buscar usando um documento hipotético"]
+    Sentence["Sentence Window<br/>Ampliar o trecho com sentenças vizinhas"]
+    Compressao["Compressão contextual<br/>Manter as partes relevantes"]
+    Decomposicao["Decomposição<br/>Pesquisar partes de uma pergunta complexa"]
+
+    Lexical["Busca lexical<br/>Correspondência entre palavras"]
+    Semantica["Busca semântica<br/>Similaridade entre representações"]
+
+    RAG --> Consulta["1. Preparação da consulta<br/>Como formular a busca?"]
+    RAG --> Busca["2. Recuperação das evidências<br/>Como encontrar os trechos?"]
+    RAG --> Contexto["3. Preparação do contexto<br/>O que fornecer ao LLM?"]
+
+
+    Grupo1["<b>G1</b><br>Emanuel"]
+    Grupo2["<b>G2</b><br>Iara | Paulo | Yasmin"]
+    Grupo3["<b>G3</b><br>Arthur | Bruno | Gabriel Vieira"]
+    Grupo4["<b>G4</b><br>Nome"]
+    Grupo5["<b>G5</b><br>Guilherme | Pedro Lucas"]
+    Grupo6["<b>G6</b><br>Filipe | Gabriela | Higor"]
+    Grupo7["<b>G7</b><br>Diego | Gabriel Alves | João Victor Póvoa"]
+    Grupo8["<b>G8</b><br>João Vitor Araújo | Rafael | Victor"]
+    Grupo9["<b>G9</b><br>Állany | Amanda | João Pedro Oliveira"]
+    Grupo10["<b>G10</b><br>Nome"]
+
+
+    Consulta --> Multi-query
+    Consulta --> HyDE
+    Consulta --> Decomposicao
+
+    Busca --> Lexical
+    Busca --> Semantica
+    Busca --> Hybrid
+
+    Lexical --> TFIDF
+    Lexical --> BM25
+    Semantica --> Embedding
+
+    Contexto --> Reranking
+    Contexto --> Sentence
+    Contexto --> Compressao
+
+    Multi-query --> Grupo1
+    HyDE --> Grupo2
+    Decomposicao --> Grupo3
+    TFIDF --> Grupo4
+    BM25 --> Grupo5
+    Embedding --> Grupo6
+    Hybrid --> Grupo7
+    Reranking --> Grupo8
+    Sentence --> Grupo9
+    Compressao --> Grupo10
+
+    classDef blue fill:#eff6ff,stroke:#2563eb,color:#1e3a8a
+    class TFIDF,BM25,Embedding,Hybrid,Reranking,Multi-query,HyDE,Sentence,Compressao,Decomposicao blue

@@ -1,0 +1,12 @@
+{
+  "name": "rag-lab-docs",
+  "private": true,
+  "type": "module",
+  "description": "Renderização dos diagramas da documentação com Pele.js",
+  "engines": {"node": ">=20"},
+  "scripts": {
+    "docs:diagrams": "node scripts/render-diagrams.mjs",
+    "docs:check": "node scripts/render-diagrams.mjs --check"
+  },
+  "devDependencies": {"pele": "1.13.0"}
+}

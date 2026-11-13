@@ -1,0 +1,20 @@
+flowchart TB
+    subgraph PREPARACAO["Preparação da base"]
+        Docs["Materiais da disciplina"]
+        O["Organizar o conteúdo para consulta"]
+        BaseDeConhecimento1[("Base pesquisável")]
+
+        Docs --> O --> BaseDeConhecimento1
+    end
+
+    subgraph CONSULTA["Atendimento de uma pergunta"]
+        User["Usuário"] -->|Pergunta| BD["Buscar informações relevantes"]
+        BaseDeConhecimento[("Base de documentos")] --> BD
+        BD -->|Trechos recuperados| Gerar["Gerar resposta com o LLM"]
+        User -->|Pergunta| Gerar
+        Gerar --> Resposta["Resposta com indicação das fontes"]
+        Resposta --> User
+    end
+
+    classDef blue fill:#eff6ff,stroke:#2563eb,color:#1e3a8a
+    class BaseDeConhecimento,BaseDeConhecimento1 blue
