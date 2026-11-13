@@ -1,0 +1,40 @@
+# Lido e validado em CADA inicialização (CLI, PowerShell e API/Compose).
+# Use config/lab.local.yaml (ignorado pelo Git) para preferências individuais.
+database_url: ${DATABASE_URL:-postgresql://rag:rag@localhost:5432/rag}
+
+llm:
+  provider: ollama             # ollama | openai (API compatível)
+  base_url: ${OLLAMA_BASE_URL:-http://localhost:11434}
+  model: llama3.2:3b
+  api_key_env: LLM_API_KEY
+  temperature: 0.0
+  timeout: 120
+
+embeddings:
+  provider: ollama
+  base_url: ${OLLAMA_BASE_URL:-http://localhost:11434}
+  model: nomic-embed-text
+  api_key_env: EMBEDDING_API_KEY
+  dimensions: 768              # deve corresponder à saída real do modelo
+  timeout: 120
+
+pipeline:
+  top_k: 5                     # quantidade final de fontes
+  candidate_k: 12              # candidatos por recuperador e consulta
+  rrf_k: 60                   # constante da fusão por ranking
+  expanded_queries: 3         # limite de reformulações/subperguntas
+  sentence_radius: 1          # sentenças vizinhas de cada lado
+  max_context_chars: 12000
+  max_sentence_chars: 1000
+
+modules:
+  multi_query: {enabled: false}
+  hyde: {enabled: false}
+  decomposicao: {enabled: false}
+  tfidf: {enabled: false}
+  bm25: {enabled: false}
+  embedding: {enabled: true}
+  hybrid: {enabled: false}
+  reranking: {enabled: false}
+  sentence: {enabled: false}
+  compressao: {enabled: false}

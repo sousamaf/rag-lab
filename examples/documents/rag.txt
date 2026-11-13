@@ -1,0 +1,8 @@
+RAG significa Retrieval-Augmented Generation, ou geração aumentada por recuperação.
+Um sistema RAG prepara uma base de documentos, recupera trechos relevantes e usa esses trechos para orientar a resposta de um modelo de linguagem.
+A etapa de ingestão organiza os documentos e produz unidades textuais pesquisáveis.
+Embeddings representam textos como vetores numéricos para permitir busca por similaridade semântica.
+TF-IDF e BM25 são técnicas de busca lexical baseadas nos termos dos documentos e da consulta.
+A busca híbrida combina rankings de métodos de recuperação diferentes.
+Reranking reordena os candidatos após a recuperação inicial.
+Uma resposta deve indicar as fontes usadas e reconhecer quando a base não contém evidências suficientes.

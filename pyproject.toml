@@ -1,0 +1,45 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "rag-lab"
+version = "0.1.0"
+description = "Laboratório didático e modular de Retrieval-Augmented Generation"
+requires-python = ">=3.11,<3.15"
+dependencies = [
+  "fastapi>=0.115,<1",
+  "uvicorn>=0.34,<1",
+  "pydantic>=2.10,<3",
+  "PyYAML>=6.0.2,<7",
+  "python-dotenv>=1.0,<2",
+  "packaging>=24,<27",
+  "psycopg[binary]>=3.2,<4",
+  "langchain-core>=1,<2",
+  "langchain-openai>=1,<2",
+  "langchain-ollama>=1,<2",
+  "langchain-text-splitters>=1,<2",
+  "scikit-learn>=1.6,<2",
+  "rank-bm25>=0.2.2,<1",
+  "httpx>=0.28,<1",
+]
+
+[project.optional-dependencies]
+dev = ["pytest>=8,<10", "ruff>=0.11,<1"]
+
+[project.scripts]
+rag-lab = "rag_lab.cli:main"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/rag_lab"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+markers = ["integration: requer PostgreSQL com pgvector (TEST_DATABASE_URL)"]
+
+[tool.ruff]
+target-version = "py311"
+line-length = 100
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B"]
