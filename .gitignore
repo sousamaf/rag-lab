@@ -218,3 +218,48 @@ __marimo__/
 
 # Streamlit
 .streamlit/secrets.toml
+
+# Preferências e estado pessoal de editores e assistentes de IA
+.codex/
+.claude/
+.cursor/
+.kimi/
+.continue/
+.agents/
+.gemini/
+.opencode/
+.aider*
+.clinerules/
+.cline/
+.roo/
+.trae/
+.windsurf/
+.windsurfrules
+.cursorrules
+.cursorignore
+.copilot/
+.github/copilot-instructions.md
+.github/instructions/
+.vscode/
+.idea/
+AGENTS.md
+AGENTS.override.md
+CLAUDE.md
+GEMINI.md
+KIMI.md
+
+# Planejamento local com OpenSpec
+openspec/
+.openspec/
+
+# Dados, segredos e resultados locais
+.env.*
+!.env.example
+config/*.local.yaml
+data/documents/*
+!data/documents/.gitkeep
+data/results/
+.DS_Store
+
+# Ferramentas de geração da documentação
+node_modules/
