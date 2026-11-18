@@ -30,8 +30,8 @@
 | **F5** | `[x] Concluída` | `src/rag_lab/modules/hybrid.py`, `tests/test_hybrid.py` | Estratégia `convex` (Min-Max normalizado por $\sum w_j$) implementada; invariância a escala, sensibilidade a *outlier* e casos degenerados ($\max = \min$, 1 item) testados | 2026-11-18 · `_score_convex` com denominador $W$ sobre todas as chaves de `retrieval` verificado |
 | **F6** | `[x] Concluída` | `src/rag_lab/modules/hybrid.py`, `tests/test_hybrid.py` | Estratégia `dbsf` ($\mu \pm 3\sigma$ com *clip* $[0, 1]$ normalizado por $\sum w_j$) implementada; $\sigma = 0$, *clip* em $n=12$ e soma exata `fsum(contributions) == fused` testados | 2026-11-18 · `_score_dbsf` e round-trip JSON estrito nas 4 estratégias verificados (`37 passed` em `test_hybrid`+`test_modules`) |
 | **F7** | `[x] Concluída` | `tests/test_pipeline.py` | Testes de composição ponta-a-ponta no `Pipeline` para todas as estratégias, bypass do `hybrid` e preservação do envelope JSON | 2026-11-18 · `83 passed, 1 skipped in 2.03s` + `ruff` e `validate` limpos |
-| **F8** | `[ ] Pendente` | `experiments/g7/{corpus/,gabarito.yaml,configs/*.yaml,README.md}` | Corpus autorizado (10–15 `.md`), 24 perguntas (4 perfis) e gabarito com dupla anotação e hash SHA-256 congelado antes das execuções | Aguardando início |
-| **F9** | `[ ] Pendente` | `experiments/g7/{rodar.py,avaliar.py}`, `tests/test_g7_avaliacao.py` | Coletor online + avaliador com *replay* offline exato, tabelas T1–T6 e testes unitários das métricas; equivalência replay == online verificada em piloto | Aguardando F8 |
+| **F8** | `[x] Concluída` | `experiments/g7/{corpus/,perguntas_gabarito.yaml,configs/*.yaml,README.md}` | Corpus autorizado (12 `.md`, 135 chunks), 24 perguntas (4 perfis), 35/35 trechos validados em chunk único, 13 YAMLs validados via `rag-lab validate` e hash SHA-256 inicial calculado | 2026-11-18 · 12 docs + 24 perguntas + 13 configs validados (`EXIT=0`) |
+| **F9** | `[ ] Pendente` | `experiments/g7/{rodar.py,avaliar.py}`, `tests/test_g7_avaliacao.py` | Coletor online + avaliador com *replay* offline exato, tabelas T1–T6 e testes unitários das métricas; equivalência replay == online verificada em piloto | Aguardando início |
 | **F10** | `[ ] Pendente` | `compose.override.yaml` (local, não versionado), `data/results/g7/` | Banco dedicado `rag_g7` via Docker (`127.0.0.1:5432`), ingestão única com embeddings e execução da matriz E0–E6 com manifestos completos | Aguardando F9 |
 | **F11** | `[ ] Pendente` | `docs/g7-hybrid.md`, `experiments/g7/results/` | Relatório técnico final com tabelas, casos de *Fusion Tax*, limitações e recomendação; suíte completa (incluindo `test_api.py` e integração) verde; PR `feat/g7-hybrid` -> `develop` | Aguardando F10 |
 
@@ -348,7 +348,7 @@ Seja $R = \text{list(payload["retrieval"].keys())}$ o conjunto de recuperadores 
 
 ---
 
-## 5. Registro Detalhado do que Já Foi Feito (F0 a F7)
+## 5. Registro Detalhado do que Já Foi Feito (F0 a F8)
 
 ### 5.1 Fase F0 — Preparação do Ambiente, Branch e Baseline de Qualidade
 
@@ -735,6 +735,275 @@ class Settings(StrictModel):
   - `uv run rag-lab --config config/lab.yaml validate` -> `{"valid": true, ...}`
   - `uv run pytest --ignore=tests/test_api.py -v` -> `83 passed, 1 skipped in 2.03s` (nota: `tests/test_api.py` permanece intacto e será executado fora do sandbox na validação de entrega devido ao `socket.socketpair()` do `TestClient`/`anyio` no Windows).
 
+### 5.6 Fase F8 — Corpus Autoral, Gabarito Independente e Configurações YAML em `experiments/g7/`
+
+#### 5.6.1 Árvore de Diretórios e Isolamento Arquitetural em `experiments/g7/`
+
+Como `.gitignore` (linhas 259–261) ignora `data/documents/*` e `data/results/`, centralizamos todos os artefatos reprodutíveis do protocolo experimental em `experiments/g7/` (Decisão D8). Isso garante que o corpus autoral, o gabarito anotado, os 13 manifestos YAML e a documentação do protocolo sejam versionados no Git, enquanto os envelopes JSON brutos das execuções futuras ficarão isolados em `data/results/g7/`:
+
+```text
+experiments/g7/
+├── README.md                              # Declaração CC-BY-4.0, mapa do corpus, matriz YAML e protocolo de revisão
+├── perguntas_gabarito.yaml                # 24 perguntas (6 por perfil) e 35 trechos relevantes anotados manualmente
+├── corpus/                                # 12 documentos .md UTF-8 (23.991 caracteres, 135 chunks sentenciais)
+│   ├── 01_arquitetura_geral.md
+│   ├── 02_autenticacao_identidade.md
+│   ├── 03_banco_vetorial_indexacao.md
+│   ├── 04_filas_mensageria.md
+│   ├── 05_faturamento_cotas.md
+│   ├── 06_seguranca_criptografia.md
+│   ├── 07_backup_recuperacao.md
+│   ├── 08_auditoria_conformidade.md
+│   ├── 09_observabilidade_telemetria.md
+│   ├── 10_slas_disponibilidade.md
+│   ├── 11_deploy_configuracao.md
+│   └── 12_governanca_ingestao_dados.md
+└── configs/                               # 13 configurações YAML validadas via `rag-lab validate`
+    ├── e0_tfidf.yaml
+    ├── e0_bm25.yaml
+    ├── e0_embedding.yaml
+    ├── e1_rr_bm25_emb.yaml
+    ├── e1_rr_todos.yaml
+    ├── e2_rrf_k10_bm25_emb.yaml
+    ├── e2_rrf_k60_bm25_emb.yaml
+    ├── e2_rrf_k60_todos.yaml
+    ├── e4_weighted_rrf_todos.yaml
+    ├── e4_convex_bm25_emb.yaml
+    ├── e4_dbsf_bm25_emb.yaml
+    ├── e5_coupling_rr_rerank.yaml
+    └── e5_coupling_rrf_rerank.yaml
+```
+
+#### 5.6.2 Engenharia do Corpus ("Plataforma Núcleo Aurora" — 12 Documentos, 23.991 Caracteres, 135 Chunks)
+
+- **Por que construímos um domínio 100% fictício e autoral (licença CC-BY-4.0):**
+  1. **Eliminação de vazamento de memória paramétrica do LLM (`llama3.2:3b`):** se o corpus descrevesse sistemas públicos reais (como documentação padrão de Kubernetes ou PostgreSQL), o modelo gerador poderia responder corretamente mesmo quando a recuperação falhasse. Ao criar a plataforma fictícia **"Núcleo Aurora"** com normas (`POL-SEG-09`, `POL-SEG-14`, `POL-AUD-03`, `POL-SLA-01`), códigos de erro (`ERR-AUR-417`, `ERR-AUR-508`, `ERR-AUR-429`, `SEC-LCK-301`, `ALR-LAT-901`) e parâmetros operacionais próprios, garantimos que a qualidade da geração dependa estritamente das evidências entregues no `top_k`.
+  2. **Conformidade ética e autoral (`docs/missoes.md`):** o acervo foi inteiramente redigido pelo Grupo G7 (Diego, Gabriel Alves e João Victor Póvoa) e licenciado sob **CC-BY-4.0**, sem dados pessoais e com autorização explícita para uso e publicação no repositório.
+  3. **Compatibilidade determinística com `split_document(..., max_chars=1000)` (`src/rag_lab/ingestion.py`):** todas as sentenças foram redigidas em linha única abaixo de `1000` caracteres e sem abreviações internas seguidas de espaço (como `ex. ` ou `Sr. `), garantindo que a expressão regular `re.split(r"(?<=[.!?])\s+|\n+", text)` produza exatamente `1` chunk por sentença ou título (`135` chunks no total).
+
+- **Tabela completa dos 12 documentos do corpus (`experiments/g7/corpus/`):**
+
+| Arquivo | Caracteres | Chunks (`split_document`, 1000 chars) | SHA-256 (prefixo 12 hex) | Papel Experimental e Mecanismos Plantados |
+|---|---|---|---|---|
+| `01_arquitetura_geral.md` | 2.234 | 13 | `4c803007a13b` | Portas (`9443`, `5353`), limite `380` conexões, coordenador `aurora-core`; fato complementar para `S04` e `C06` |
+| `02_autenticacao_identidade.md` | 2.066 | 12 | `f7ddef0b5595` | `POL-SEG-09` (`18` min), `SEC-LCK-301` (`5` tentativas), `AUR-ID-702`, rotação Ed25519 (`14` dias); distrator de "token" e "rotação" (`L01`, `C01`) |
+| `03_banco_vetorial_indexacao.md` | 2.039 | 11 | `b903f81353dd` | `ERR-AUR-417`, `768` dimensões, busca exata até `50000`, rollback atômico; par redundante com `07` e alvo *near-miss* `N02` |
+| `04_filas_mensageria.md` | 1.826 | 11 | `8012327594e2` | `ERR-AUR-508`, `aurora.dlq.critico` (`4` tentativas), expurgo em `21` dias, janela `120` s; distrator lexical de "janela" e "expurgo" (`L03`) |
+| `05_faturamento_cotas.md` | 1.844 | 11 | `f413ef7747cd` | Franquia `4500000` tokens, `ERR-AUR-429`, isenção sem geração, custo do preflight; distrator de "token" (`L04`, `S04`, `C05`, `N03`) |
+| `06_seguranca_criptografia.md` | 2.096 | 11 | `7266eec7b719` | `POL-SEG-14` (`aurora_db_net`, porta `5432`), recifragem semestral `aurora-vault`, sanitização HTTP `503` (`L05`, `S02`, `C01`) |
+| `07_backup_recuperacao.md` | 1.901 | 11 | `56616bc55ebb` | Retenção WORM `90` dias, RPO `15` min, RTO `40` min, protocolo `DR-SIM-04`, transação atômica por documento (`S01`, `C02`, `C03`) |
+| `08_auditoria_conformidade.md` | 1.941 | 11 | `71f80bf3aeb8` | `POL-AUD-03`, expurgo em `365` dias, retenção fiscal `5` anos, proibição de gabarito automático (`S06`, `C02`) |
+| `09_observabilidade_telemetria.md` | 1.961 | 11 | `e41d011c5593` | OpenTelemetry porta `4317`, rotação de log `500` MB, `ALR-LAT-901` (`4500` ms), rota `/health` sem LLM (`L06`, `C05`, `C06`) |
+| `10_slas_disponibilidade.md` | 1.958 | 11 | `f549c8cbf295` | `POL-SLA-01`, `99,95%` (`21` min/mês), crédito de `12%`, janela terças `02h00–04h00` (`C03`, distrator de `N03`) |
+| `11_deploy_configuracao.md` | 2.065 | 11 | `3ce0076a485b` | `AURORA_CONFIG_PATH`, ausência de hot-reload (exige reinício), booleanos estritos (`S03`) |
+| `12_governanca_ingestao_dados.md` | 2.060 | 11 | `d29201085777` | `.txt`/`.md` UTF-8, identidade por caminho relativo, obrigatoriedade de reingestão (`S05`, `C04`, `N01`) |
+| **Total** | **23.991** | **135** | — | — |
+
+- **Mapeamento dos 5 mecanismos de estresse experimental plantados no corpus:**
+  1. **Identificadores e códigos exatos (força lexical de `bm25`/`tfidf`):** códigos de falha (`ERR-AUR-417` em `03`, `ERR-AUR-508` em `04`, `ERR-AUR-429` em `05`, `SEC-LCK-301` em `02`, `ALR-LAT-901` em `09`), normas (`POL-SEG-09` em `02`, `POL-SEG-14` em `06`, `POL-AUD-03` em `08`, `POL-SLA-01` em `10`), variáveis/filas (`AURORA_CONFIG_PATH` em `11`, `aurora.dlq.critico` em `04`, `aurora_db_net` em `06`) e portas (`9443`, `5353`, `5432`, `4317`, `8000`).
+  2. **Descrições formais para recuperação semântica por paráfrase (força de `embedding`):** sentenças redigidas com vocabulário técnico formal para que as perguntas `S01`–`S06` utilizem sinônimos cotidianos (ex.: perguntar sobre *"arquivo salvo pela metade"* em `S01` para recuperar *"transação inteira sofre reversão automática"* em `03` e *"nenhuma metade de arquivo fica gravada"* em `07`; perguntar sobre *"descubra endereços de servidores internos ou credenciais"* em `S02` para recuperar *"convertida em erro genérico 503 sem exibir URLs ou chaves de API"* em `06`).
+  3. **Distratores lexicais cruzados entre domínios (indução controlada de *Fusion Tax*):**
+     - Termo `"token"` / `"tokens"`: ocorre em `02_autenticacao_identidade.md` (token de sessão de 18 minutos) e em `05_faturamento_cotas.md` (franquia de 4.500.000 tokens de inferência e tarifa por lote de mil tokens).
+     - Termo `"janela"` / `"janelas"`: ocorre em 5 documentos distintos — tolerância de 30 s na renovação de sessão (`02`), desduplicação de 120 s no NATS (`04`), tarifação móvel de 60 s (`05`), agregação de percentis `p95`/`p99` de 30 s (`09`) e manutenção programada às terças 02h00–04h00 (`10`).
+     - Termo `"rotação"`: ocorre na rotação de chaves Ed25519 a cada 14 dias (`02`) e na rotação de arquivos de log locais a cada 500 MB (`09`).
+     - Termos `"expurgo"` / `"retenção"`: ocorrem na retenção de 21 dias na DLQ antes do expurgo (`04`), na retenção WORM de 90 dias de backups (`07`), no expurgo de metadados transitórios em 365 dias (`08`) e na retenção fiscal de 5 anos (`08`).
+  4. **Pares quase redundantes em arquivos distintos (exercício de consenso e Jaccard):**
+     - Atomicidade transacional por documento e preservação da versão anterior em caso de falha de embeddings (`03_banco_vetorial_indexacao.md` e `07_backup_recuperacao.md`).
+     - Limiar de `4500` milissegundos de tempo de resposta/geração (`09_observabilidade_telemetria.md` e `10_slas_disponibilidade.md`).
+     - Proibição de segredos no YAML e referência por variáveis de ambiente (`06_seguranca_criptografia.md` e `11_deploy_configuracao.md`).
+  5. **Fatos complementares divididos em documentos distintos (perguntas compostas `C01`–`C06`):** pares de informações onde nenhum documento isolado contém a resposta completa, exigindo que a estratégia de seleção/fusão posicione ambos os documentos dentro do corte `top_k: 5`.
+
+#### 5.6.3 Design e Governança do Gabarito (`experiments/g7/perguntas_gabarito.yaml`)
+
+- **Mapa completo das 24 perguntas por perfil (`6` literais, `6` semânticas, `6` compostas, `6` sem resposta):**
+
+| ID | Perfil | `responder` | Documentos-alvo (`documentos_relevantes`) | Qtd. Trechos | Anotador / Revisor | O que estressa experimentalmente |
+|---|---|---|---|---|---|---|
+| `L01` | `literal` | `true` | `02_autenticacao_identidade.md` | 2 | Diego / Gabriel Alves | Códigos `POL-SEG-09` e `SEC-LCK-301` com distrator "token" em `05` |
+| `L02` | `literal` | `true` | `03_banco_vetorial_indexacao.md` | 1 | Diego / Gabriel Alves | Código exato `ERR-AUR-417` frente a `ERR-AUR-508` e `ERR-AUR-429` |
+| `L03` | `literal` | `true` | `04_filas_mensageria.md` | 2 | Gabriel Alves / João Victor | Fila `aurora.dlq.critico` (21 dias) com distrator "expurgo" em `07` e `08` |
+| `L04` | `literal` | `true` | `05_faturamento_cotas.md` | 2 | Gabriel Alves / Diego | Franquia `4500000` tokens e `ERR-AUR-429` com distrator "bloqueio/token" em `02` |
+| `L05` | `literal` | `true` | `06_seguranca_criptografia.md` | 1 | João Victor / Diego | `POL-SEG-14`, `aurora_db_net` e porta `5432` (*outlier* de score no BM25) |
+| `L06` | `literal` | `true` | `09_observabilidade_telemetria.md` | 2 | João Victor / Gabriel Alves | `ALR-LAT-901` (`4500` ms) e porta `4317` com distrator `4500` ms em `10` |
+| `S01` | `semantica` | `true` | `03_banco_vetorial_indexacao.md`, `07_backup_recuperacao.md` | 3 | Diego / Gabriel Alves | Paráfrase de rollback/transação atômica; consenso em par redundante `03`+`07` |
+| `S02` | `semantica` | `true` | `06_seguranca_criptografia.md` | 1 | Diego / João Victor | Paráfrase de sanitização de exceções em HTTP 503; testa viés 2:1 contra `embedding` |
+| `S03` | `semantica` | `true` | `11_deploy_configuracao.md` | 1 | Gabriel Alves / Diego | Paráfrase de ausência de hot-reload sem usar "recarga", "switches" ou "YAML" |
+| `S04` | `semantica` | `true` | `05_faturamento_cotas.md`, `01_arquitetura_geral.md` | 2 | Gabriel Alves / João Victor | Paráfrase de isenção de tarifação quando não há evidências na base |
+| `S05` | `semantica` | `true` | `12_governanca_ingestao_dados.md` | 2 | João Victor / Diego | Paráfrase de identidade por caminho relativo (renomear duplica; deletar mantém) |
+| `S06` | `semantica` | `true` | `08_auditoria_conformidade.md` | 1 | João Victor / Gabriel Alves | Paráfrase da proibição de usar saída automática do sistema como gabarito |
+| `C01` | `composta` | `true` | `02_autenticacao_identidade.md`, `06_seguranca_criptografia.md` | 2 | Diego / Gabriel Alves | Rotação Ed25519 (14 dias) vs. recifragem `aurora-vault` (semestral) + distrator em `09` |
+| `C02` | `composta` | `true` | `07_backup_recuperacao.md`, `08_auditoria_conformidade.md` | 3 | Diego / João Victor | Retenção WORM (90 dias) vs. expurgo auditoria (365 dias) vs. fiscal (5 anos) |
+| `C03` | `composta` | `true` | `07_backup_recuperacao.md`, `10_slas_disponibilidade.md` | 3 | Gabriel Alves / Diego | RPO (15 min) e RTO (40 min) vs. orçamento SLA de indisponibilidade (21 min/mês) |
+| `C04` | `composta` | `true` | `03_banco_vetorial_indexacao.md`, `12_governanca_ingestao_dados.md` | 2 | Gabriel Alves / João Victor | Cálculo SHA-256 da chave vetorial (`03`) + regra de reingestão obrigatória (`12`) |
+| `C05` | `composta` | `true` | `09_observabilidade_telemetria.md`, `05_faturamento_cotas.md` | 2 | João Victor / Diego | Rota `/health` sem LLM (`09`) vs. preflight consumindo tokens reais (`05`) |
+| `C06` | `composta` | `true` | `01_arquitetura_geral.md`, `09_observabilidade_telemetria.md` | 3 | João Victor / Gabriel Alves | Portas Envoy (`9443`), DNS interno (`5353`) e OpenTelemetry (`4317`) |
+| `N01` | `sem_resposta` | `false` | `[]` | 0 | Diego / Gabriel Alves | *Near-miss* 1: pede DPI/idioma de OCR no `aurora-ingest` (OCR é bloqueado em `12`) |
+| `N02` | `sem_resposta` | `false` | `[]` | 0 | Gabriel Alves / João Victor | *Near-miss* 2: pede `m` e `ef_construction` HNSW até 50000 trechos (`03` usa busca exata) |
+| `N03` | `sem_resposta` | `false` | `[]` | 0 | João Victor / Diego | *Near-miss* 3: pede desconto do "plano Estudantil Básico" (distrator crédito 12% SLA) |
+| `N04` | `sem_resposta` | `false` | `[]` | 0 | Diego / João Victor | Fora do domínio 1 (esportes): escalação do Brasil na final da Copa de 2002 |
+| `N05` | `sem_resposta` | `false` | `[]` | 0 | Gabriel Alves / Diego | Fora do domínio 2 (culinária): temperatura e fermentação de panetone artesanal |
+| `N06` | `sem_resposta` | `false` | `[]` | 0 | João Victor / Gabriel Alves | Fora do domínio 3 (biologia): fixação noturna de carbono na fotossíntese CAM |
+
+- **Trecho real de `experiments/g7/perguntas_gabarito.yaml` (exemplo respondível `S02` e exemplo sem resposta *near-miss* `N02`):**
+
+```yaml
+  - id: S02
+    perfil: semantica
+    pergunta: "De que forma o serviço web impede que um usuário externo descubra endereços de servidores internos ou credenciais ao ocorrer um defeito de comunicação?"
+    responder: true
+    documentos_relevantes:
+      - 06_seguranca_criptografia.md
+    trechos_relevantes:
+      - fonte: 06_seguranca_criptografia.md
+        trecho: "Para evitar vazamento de topologia e de segredos em ambientes de produção, qualquer exceção lançada por bibliotecas de clientes externos é interceptada na borda HTTP e convertida em erro genérico 503 sem exibir URLs ou chaves de API."
+        essencial: true
+    fatos_esperados:
+      - "Exceções de bibliotecas/SDKs são interceptadas na borda HTTP"
+      - "Conversão em erro genérico HTTP 503 omitindo URLs e chaves de API"
+    observacao_experimental: "Consulta conceitual onde métodos lexicais têm baixa sobreposição e o recuperador vetorial (embedding) deve liderar; testa o viés 2:1 do RRF."
+    anotador: Diego
+    revisor: João Victor Póvoa
+    status_revisao: pendente_validacao_humana
+
+  - id: N02
+    perfil: sem_resposta
+    pergunta: "Quais valores de m e ef_construction são recomendados para calibrar o índice aproximado HNSW no aurora-vectordb em coleções de até 50000 fragmentos?"
+    responder: false
+    documentos_relevantes: []
+    trechos_relevantes: []
+    fatos_esperados:
+      - "Abstenção explícita: a base não contém parâmetros HNSW (m ou ef_construction), pois até 50000 fragmentos o aurora-vectordb utiliza busca exata sem índice ANN."
+    observacao_experimental: "Near-miss 2: alta sobreposição lexical com 03_banco_vetorial_indexacao.md ('aurora-vectordb', '50000 fragmentos', 'índice aproximado'), testando se o LLM inventa parâmetros HNSW."
+    anotador: Gabriel Alves
+    revisor: João Victor Póvoa
+    status_revisao: pendente_validacao_humana
+```
+
+- **Por que usamos casamento por substring normalizada dentro de chunk único de `split_document(..., 1000)`:**
+  - Em `src/rag_lab/ingestion.py` (linhas 24–25), o `id` de cada chunk é `sha256(f"{document_id}:{i}:{part}")`. Se uma sentença não relacionada no início do documento fosse editada, o índice `i` e o `id` de todas as sentenças seguintes mudariam.
+  - Ao anotar `trechos_relevantes` pelo texto literal da sentença normalizada por espaço (`re.sub(r"\s+", " ", s.strip())`) + `fonte`, e validar que cada trecho está contido integralmente dentro de um único chunk gerado por `split_document(source, text, 1000)`, a avaliação de `Recall@k`, `MRR` e `nDCG@k` por trecho torna-se imune a mudanças de hash/posição e garante que nenhum trecho relevante foi partido ao meio na ingestão.
+- **Protocolo de revisão humana cruzada e congelamento do hash SHA-256:**
+  - Todos os 24 itens nascem com `status_revisao: pendente_validacao_humana` e pares distintos `(anotador, revisor)` distribuídos entre Diego, Gabriel Alves e João Victor Póvoa.
+  - Antes da execução da matriz experimental na Fase F10, os três integrantes revisam os itens, alteram `status_revisao` para `"homologado"` (ou `"validado"`) e congelam o SHA-256 do arquivo `perguntas_gabarito.yaml`, que será gravado automaticamente em cada `manifest.json` pelo `rodar.py`.
+
+#### 5.6.4 Matriz de Configurações Experimentais (`experiments/g7/configs/` — 13 YAMLs)
+
+- **Variáveis mantidas estritamente constantes nos 13 arquivos:**
+  - `database_url: ${DATABASE_URL:-postgresql://rag:rag@localhost:5432/rag_g7}` (sem segredos hardcoded);
+  - `llm`: `provider: ollama`, `base_url: ${OLLAMA_BASE_URL:-http://localhost:11434}`, `model: llama3.2:3b`, `api_key_env: LLM_API_KEY`, `temperature: 0.0`, `timeout: 120`;
+  - `embeddings`: `provider: ollama`, `base_url: ${OLLAMA_BASE_URL:-http://localhost:11434}`, `model: nomic-embed-text`, `api_key_env: EMBEDDING_API_KEY`, `dimensions: 768`, `timeout: 120`;
+  - `pipeline`: `top_k: 5`, `candidate_k: 12`, `expanded_queries: 3`, `sentence_radius: 1`, `max_context_chars: 12000`, `max_sentence_chars: 1000`;
+  - `modules`: `multi_query: false`, `hyde: false`, `decomposicao: false`, `sentence: false`, `compressao: false` em todos os 13 arquivos; `reranking: false` em E0–E4 e `reranking: true` exclusivamente nos 2 arquivos de E5.
+
+- **Tabela completa dos 13 YAMLs experimentais:**
+
+| Arquivo YAML | Bloco | Recuperadores Ativos | `hybrid` | Estratégia / Parâmetros (`rrf_k`, `weights`) | `reranking` | Hipótese / Objetivo Experimental |
+|---|---|---|---|---|---|---|
+| `e0_tfidf.yaml` | `E0` | `tfidf` | `false` | — (`rrf_k: 60`) | `false` | Medir baseline lexical puro por cosseno TF-IDF |
+| `e0_bm25.yaml` | `E0` | `bm25` | `false` | — (`rrf_k: 60`) | `false` | Medir baseline lexical BM25Okapi (IDF Lucene positivo) |
+| `e0_embedding.yaml` | `E0` | `embedding` | `false` | — (`rrf_k: 60`) | `false` | Medir baseline semântico puro (`pgvector` cosseno exato) |
+| `e1_rr_bm25_emb.yaml` | `E1` | `bm25`, `embedding` | `false` | `select_without_fusion` (*bypass*) | `false` | Baseline round-robin lexical + semântico sem fusão de scores |
+| `e1_rr_todos.yaml` | `E1` | `tfidf`, `bm25`, `embedding` | `false` | `select_without_fusion` (*bypass*) | `false` | Round-robin com 3 recuperadores + **execução-mestre** que captura `retrieval` completo para replay offline |
+| `e2_rrf_k10_bm25_emb.yaml` | `E2` | `bm25`, `embedding` | `true` | `strategy: rrf`, `rrf_k: 10` | `false` | Testar RRF exatamente no limiar crítico $k = 10$ ($1/11 == 2/22$ em $C=12$) |
+| `e2_rrf_k60_bm25_emb.yaml` | `E2` | `bm25`, `embedding` | `true` | `strategy: rrf`, `rrf_k: 60` | `false` | Avaliar RRF padrão ($k=60$) contra round-robin (`e1_rr_bm25_emb`) |
+| `e2_rrf_k60_todos.yaml` | `E2` | `tfidf`, `bm25`, `embedding` | `true` | `strategy: rrf`, `rrf_k: 60` | `false` | Medir o efeito do viés lexical 2:1 (`tfidf` + `bm25` vs. `embedding`) no RRF padrão |
+| `e4_weighted_rrf_todos.yaml` | `E4` | `tfidf`, `bm25`, `embedding` | `true` | `strategy: weighted_rrf`, `weights: {tfidf: 1.0, bm25: 1.0, embedding: 2.0}` | `false` | Testar se dobrar o peso do `embedding` ($w_{\text{emb}}=2$) neutraliza o viés lexical 2:1 |
+| `e4_convex_bm25_emb.yaml` | `E4` | `bm25`, `embedding` | `true` | `strategy: convex`, `weights: {bm25: 1.0, embedding: 1.0}` | `false` | Comparar fusão por magnitude Min-Max (`convex`) com RRF e medir efeito de *outliers* do BM25 |
+| `e4_dbsf_bm25_emb.yaml` | `E4` | `bm25`, `embedding` | `true` | `strategy: dbsf`, `weights: {bm25: 1.0, embedding: 1.0}` | `false` | Avaliar normalização $\mu \pm 3\sigma$ (`dbsf`) e seu bônus de presença frente ao Min-Max |
+| `e5_coupling_rr_rerank.yaml` | `E5` | `bm25`, `embedding` | `false` | `select_without_fusion` (*bypass*) | `true` | Par 1 de E5: medir `evidence` final com `hybrid: false` e `reranking: true` |
+| `e5_coupling_rrf_rerank.yaml` | `E5` | `bm25`, `embedding` | `true` | `strategy: rrf`, `rrf_k: 60` | `true` | Par 2 de E5: comprovar que `reranking: true` produz `top_k` idêntico ao de `hybrid: false` (Acoplamento A1) |
+
+- **Trechos reais de dois YAMLs representativos (`e2_rrf_k60_bm25_emb.yaml` e `e4_weighted_rrf_todos.yaml`):**
+
+```yaml
+# experiments/g7/configs/e2_rrf_k60_bm25_emb.yaml (linhas 20-42)
+pipeline:
+  top_k: 5
+  candidate_k: 12
+  rrf_k: 60
+  expanded_queries: 3
+  sentence_radius: 1
+  max_context_chars: 12000
+  max_sentence_chars: 1000
+
+hybrid:
+  strategy: rrf
+
+modules:
+  multi_query: {enabled: false}
+  hyde: {enabled: false}
+  decomposicao: {enabled: false}
+  tfidf: {enabled: false}
+  bm25: {enabled: true}
+  embedding: {enabled: true}
+  hybrid: {enabled: true}
+  reranking: {enabled: false}
+  sentence: {enabled: false}
+  compressao: {enabled: false}
+```
+
+```yaml
+# experiments/g7/configs/e4_weighted_rrf_todos.yaml (linhas 29-46)
+hybrid:
+  strategy: weighted_rrf
+  weights:
+    tfidf: 1.0
+    bm25: 1.0
+    embedding: 2.0
+
+modules:
+  multi_query: {enabled: false}
+  hyde: {enabled: false}
+  decomposicao: {enabled: false}
+  tfidf: {enabled: true}
+  bm25: {enabled: true}
+  embedding: {enabled: true}
+  hybrid: {enabled: true}
+  reranking: {enabled: false}
+  sentence: {enabled: false}
+  compressao: {enabled: false}
+```
+
+#### 5.6.5 Evidências Exatas de Verificação da F8
+
+- **Validação estrita dos 13 YAMLs via `rag-lab --config <arquivo> validate` (`13/13 EXIT=0`):**
+  ```text
+  e0_bm25.yaml: EXIT=0
+  e0_embedding.yaml: EXIT=0
+  e0_tfidf.yaml: EXIT=0
+  e1_rr_bm25_emb.yaml: EXIT=0
+  e1_rr_todos.yaml: EXIT=0
+  e2_rrf_k10_bm25_emb.yaml: EXIT=0
+  e2_rrf_k60_bm25_emb.yaml: EXIT=0
+  e2_rrf_k60_todos.yaml: EXIT=0
+  e4_convex_bm25_emb.yaml: EXIT=0
+  e4_dbsf_bm25_emb.yaml: EXIT=0
+  e4_weighted_rrf_todos.yaml: EXIT=0
+  e5_coupling_rrf_rerank.yaml: EXIT=0
+  e5_coupling_rr_rerank.yaml: EXIT=0
+  ```
+- **Saída real do script de verificação do corpus e do gabarito contra `split_document(..., 1000)`:**
+  ```text
+  === CORPUS (12 ARQUIVOS) ===
+  01_arquitetura_geral.md: 2234 chars | 13 chunks | sha256=4c803007a13b
+  02_autenticacao_identidade.md: 2066 chars | 12 chunks | sha256=f7ddef0b5595
+  03_banco_vetorial_indexacao.md: 2039 chars | 11 chunks | sha256=b903f81353dd
+  04_filas_mensageria.md: 1826 chars | 11 chunks | sha256=8012327594e2
+  05_faturamento_cotas.md: 1844 chars | 11 chunks | sha256=f413ef7747cd
+  06_seguranca_criptografia.md: 2096 chars | 11 chunks | sha256=7266eec7b719
+  07_backup_recuperacao.md: 1901 chars | 11 chunks | sha256=56616bc55ebb
+  08_auditoria_conformidade.md: 1941 chars | 11 chunks | sha256=71f80bf3aeb8
+  09_observabilidade_telemetria.md: 1961 chars | 11 chunks | sha256=e41d011c5593
+  10_slas_disponibilidade.md: 1958 chars | 11 chunks | sha256=f549c8cbf295
+  11_deploy_configuracao.md: 2065 chars | 11 chunks | sha256=3ce0076a485b
+  12_governanca_ingestao_dados.md: 2060 chars | 11 chunks | sha256=d29201085777
+  Total de chunks no corpus: 135
+  === GABARITO ===
+  Perguntas por perfil: {'literal': 6, 'semantica': 6, 'composta': 6, 'sem_resposta': 6}
+  Trechos relevantes verificados: 35/35 no arquivo e 35/35 em chunk unico
+  SHA-256 inicial de perguntas_gabarito.yaml: 046841378bc39d6dd95fd2edefe37f3d91161afed85802925d6e932c68762e32
+  ```
+
 ---
 
 ## 6. Especificação Técnica das Próximas Fases (F3 a F11)
@@ -972,3 +1241,22 @@ Adicionar em `tests/test_pipeline.py`:
   - `rag-lab --config config/lab.yaml validate`: `{"valid": true}`
   - `pytest --ignore=tests/test_api.py -v`: `83 passed, 1 skipped in 2.03s`
 - **Pendências / Descobertas:** Código de produção do módulo `hybrid.py` e `config.py` concluído e 100% coberto por testes; pronto para iniciar a Fase F8 (construção do corpus, perguntas e gabarito experimental em `experiments/g7/`).
+
+#### Fase F8 — Protocolo Experimental, Corpus Autoral, Gabarito e Configs YAML (`2026-11-18`)
+- **Resumo:** Construção completa do pacote experimental independente em `experiments/g7/`: 12 documentos `.md` autorais (licença CC-BY-4.0) sobre a Plataforma Fictícia "Núcleo Aurora" (`23.991` caracteres, `135` chunks sentenciais), 24 perguntas balanceadas em 4 perfis (`6` literais, `6` semânticas, `6` compostas, `6` sem resposta) com gabarito de dupla anotação em `experiments/g7/perguntas_gabarito.yaml` (`35` trechos relevantes), 13 configurações YAML em `experiments/g7/configs/` e documentação completa em `experiments/g7/README.md`.
+- **Arquivos tocados:**
+  - `experiments/g7/corpus/01_arquitetura_geral.md` .. `12_governanca_ingestao_dados.md` (12 novos arquivos `.md`, `23.991` caracteres totais, `135` chunks)
+  - `experiments/g7/perguntas_gabarito.yaml` (novo, 492 linhas, 24 perguntas, 35 trechos relevantes)
+  - `experiments/g7/configs/*.yaml` (13 novos arquivos YAML cobrindo E0, E1, E2, E4 e E5)
+  - `experiments/g7/README.md` (novo, 73 linhas)
+- **Trechos-chave / Mudanças de design:**
+  - Cada sentença do corpus foi redigida sem abreviações internas com ponto seguido de espaço e com comprimento inferior a `1000` caracteres, garantindo alinhamento determinístico 1:1 com a regex `re.split(r"(?<=[.!?])\s+|\n+", text)` de `src/rag_lab/ingestion.py`.
+  - Inclusão deliberada dos 5 mecanismos de estresse: (1) códigos exatos (`ERR-AUR-417`, `POL-SEG-09`, `SEC-LCK-301`, `ALR-LAT-901`); (2) paráfrases semânticas sem sobreposição lexical (`S01`–`S06`); (3) distratores lexicais entre domínios ("token" em autenticação vs. faturamento; "rotação" em chaves Ed25519 vs. logs de 500 MB; "expurgo"/"retenção" em DLQ de 21 dias vs. backup WORM de 90 dias vs. auditoria de 365 dias/5 anos; "janela" em 5 documentos); (4) pares quase redundantes (`03`+`07`, `09`+`10`, `06`+`11`); e (5) fatos complementares multi-documento (`C01`–`C06`).
+  - Schema do gabarito com casamento por substring normalizada contida em chunk único e governança de revisão cruzada (`anotador`, `revisor`, `status_revisao: pendente_validacao_humana`).
+- **Por que fizemos assim:**
+  - Bloquear o uso de conhecimento prévio do LLM (`llama3.2:3b`) por meio de um domínio fictício controlado, cumprir rigorosamente o protocolo científico de `docs/missoes.md` (gabarito independente criado antes de rodar o sistema, base autorizada sob CC-BY-4.0, controle de variáveis mantendo `top_k: 5`, `candidate_k: 12` e `max_context_chars: 12000` constantes nos 13 YAMLs) e permitir versionamento no Git fora das pastas ignoradas `data/documents/` e `data/results/`.
+- **Resultados de validação:**
+  - `rag-lab --config <arquivo> validate` nos 13 YAMLs de `experiments/g7/configs/`: `13/13 EXIT=0`.
+  - Script de verificação de corpus e gabarito: `12/12` arquivos entre `1.826` e `2.234` chars (`135` chunks), `24/24` perguntas (`6` por perfil) e `35/35` `trechos_relevantes` casando exatamente no arquivo e dentro de um único chunk sentencial de `split_document`.
+  - SHA-256 inicial pré-revisão humana de `experiments/g7/perguntas_gabarito.yaml`: `046841378bc39d6dd95fd2edefe37f3d91161afed85802925d6e932c68762e32`.
+- **Pendências / Descobertas:** Revisão humana cruzada pelo trio (Diego, Gabriel Alves e João Victor Póvoa) para alterar `status_revisao` de `"pendente_validacao_humana"` para `"validado"`/`"homologado"` e congelar o SHA-256 definitivo antes da coleta oficial na F10; pronto para iniciar a Fase F9 (`rodar.py`, `avaliar.py` e `tests/test_g7_avaliacao.py`).
