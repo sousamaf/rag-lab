@@ -29,7 +29,7 @@ class Providers:
             raise ValueError(f"Defina {config.api_key_env} para o endpoint compatível com OpenAI.")
         return key
 
-    def chat(self, system: str, user: str) -> str:
+    def _chat_model(self):
         config = self.settings.llm
         if self._chat is None:
             if config.provider == "ollama":
@@ -52,8 +52,22 @@ class Providers:
                     timeout=config.timeout,
                     max_retries=1,
                 )
-        # .text também lida com modelos que retornam blocos de conteúdo.
-        return self._chat.invoke([("system", system), ("human", user)]).text
+        return self._chat
+
+    def chat(self, system: str, user: str) -> str:
+        return self._chat_model().invoke([("system", system), ("human", user)]).text
+
+    def chat_json(self, system: str, user: str, *, schema: dict) -> str:
+        if self.settings.llm.provider == "ollama":
+            options = {
+                "reasoning": False,
+                "format": schema,
+                "stream": False,
+                "options": {"temperature": self.settings.llm.temperature, "num_predict": 256},
+            }
+        else:
+            options = {"reasoning_effort": "none", "response_format": {"type": "json_object"}}
+        return self._chat_model().invoke([("system", system), ("human", user)], **options).text
 
     def embed(self, texts: list[str]) -> list[list[float]]:
         config = self.settings.embeddings

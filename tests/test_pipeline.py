@@ -52,6 +52,31 @@ def test_all_ten_modules_compose_and_hyde_is_not_evidence(services):
     assert "reranking" in result.evidence[0].scores
 
 
+@pytest.mark.parametrize("hybrid", [False, True])
+def test_tags_follow_chunk_id_through_fusion_and_context_steps(services, hybrid):
+    enabled = ["tfidf", "bm25", "embedding", "reranking", "sentence", "compressao"]
+    if hybrid:
+        enabled.append("hybrid")
+    services.settings = with_modules(services.settings, *enabled)
+    neighbor = services.store.chunks[1]
+    neighbor.text = "RAG consulta bancos de dados com SQL."
+    neighbor.metadata["tags"] = ["bancos-de-dados"]
+
+    result = Pipeline(services).run(Envelope(question="RAG"))
+    payload = json.loads(result.model_dump_json())
+    assert set(payload["retrieval"]) == {"tfidf", "bm25", "embedding"}
+    expected = ["dados-e-inteligencia-artificial"]
+    for ranking in payload["retrieval"].values():
+        item = next(item for item in ranking if item["id"] == "a")
+        assert item["metadata"]["tags"] == expected
+
+    evidence = {item["id"]: item for item in payload["evidence"]}
+    assert "com SQL" in evidence["a"]["context_text"]
+    assert evidence["a"]["metadata"]["tags"] == expected
+    assert evidence["b"]["metadata"]["tags"] == ["bancos-de-dados"]
+    assert evidence["c"]["metadata"]["tags"] == []
+
+
 def test_context_budget_and_source_numbers_match(services):
     services.settings = with_modules(services.settings, "embedding")
     services.settings.pipeline.max_context_chars = 100

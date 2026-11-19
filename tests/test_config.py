@@ -16,6 +16,22 @@ def test_config_reload_and_environment(config_data, tmp_path, monkeypatch):
     assert not load_settings(path).modules["embedding"].enabled
 
 
+@pytest.mark.parametrize("legacy", [False, True])
+def test_classifier_is_selected_by_environment(config_data, tmp_path, monkeypatch, legacy):
+    monkeypatch.chdir(tmp_path)
+    monkeypatch.delenv("RAG_TAG_CLASSIFIER", raising=False)
+    if legacy:
+        config_data.pop("tagging_method")
+    path = tmp_path / "lab.yaml"
+    path.write_text(yaml.safe_dump(config_data), encoding="utf-8")
+    assert load_settings(path).tagging_method == "llm"
+    monkeypatch.setenv("RAG_TAG_CLASSIFIER", "terms")
+    assert load_settings(path).tagging_method == "terms"
+    monkeypatch.setenv("RAG_TAG_CLASSIFIER", "invalid")
+    with pytest.raises(ValidationError, match="tagging_method"):
+        load_settings(path)
+
+
 @pytest.mark.parametrize(
     "change", ["unknown", "missing", "hybrid", "hyde", "string_bool", "limits"]
 )

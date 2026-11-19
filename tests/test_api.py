@@ -24,10 +24,12 @@ def test_api_startup_modules_query_and_error_handling(services, monkeypatch):
     with TestClient(create_app()) as client:
         assert client.get("/health").json() == {"status": "ok"}
         assert client.get("/modules").json()["bm25"] is True
-        response = client.post("/query", json={"question": "RAG", "experiment": "G5"})
+        response = client.post("/query", json={"question": "RAG Embeddings", "experiment": "G5"})
         assert response.status_code == 200
         assert response.json()["experiment"] == "G5"
-        assert response.json()["evidence"][0]["source"] == "a.txt"
+        for items in (response.json()["evidence"], response.json()["retrieval"]["bm25"]):
+            by_source = {item["source"]: item["metadata"]["tags"] for item in items}
+            assert by_source == {"a.txt": ["dados-e-inteligencia-artificial"], "b.txt": []}
         assert client.post("/query", json={"question": "  "}).status_code == 422
 
         def fail(system, user):
