@@ -5,7 +5,7 @@ from __future__ import annotations
 from typing import Any
 from uuid import uuid4
 
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 
 class Chunk(BaseModel):
@@ -15,7 +15,17 @@ class Chunk(BaseModel):
     source: str
     document_id: str
     position: int
-    metadata: dict[str, Any] = Field(default_factory=dict)
+    metadata: dict[str, Any] = Field(default_factory=dict, validate_default=True)
+
+    @field_validator("metadata")
+    @classmethod
+    def validate_metadata_tags(cls, metadata: dict[str, Any]) -> dict[str, Any]:
+        if "tags" not in metadata:
+            return {**metadata, "tags": []}
+        tags = metadata["tags"]
+        if not isinstance(tags, list) or any(not isinstance(tag, str) for tag in tags):
+            raise ValueError("metadata.tags deve ser uma lista de strings.")
+        return metadata
 
 
 class Evidence(Chunk):

@@ -23,6 +23,7 @@ services:
       DATABASE_URL: "postgresql://${POSTGRES_USER:-rag}:${POSTGRES_PASSWORD:-rag}@postgres:5432/${POSTGRES_DB:-rag}"
       OLLAMA_BASE_URL: ${OLLAMA_BASE_URL:-http://host.docker.internal:11434}
       RAG_CONFIG: /app/config/runtime.yaml
+      RAG_TAG_CLASSIFIER: ${RAG_TAG_CLASSIFIER:-llm}
       LLM_API_KEY: ${LLM_API_KEY:-}
       EMBEDDING_API_KEY: ${EMBEDDING_API_KEY:-}
     extra_hosts:

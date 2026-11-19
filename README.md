@@ -179,11 +179,47 @@ O campo `evidence` inclui fontes, posições, números de citação e scores por
 O prompt solicita citações ao LLM, mas a correção dessas citações deve ser avaliada
 pelos alunos: a geração não garante fidelidade factual.
 
+## Rótulos temáticos por trecho
+
+Na ingestão, cada trecho é avaliado com o catálogo de Sistemas de Informação em
+[config/tags-si.yaml](config/tags-si.yaml). Selecione `RAG_TAG_CLASSIFIER` no `.env`
+ou no ambiente. O [lab.yaml](config/lab.yaml) lê a variável no campo `tagging_method`.
+
+- `llm` é o padrão. O modelo configurado em `llm` recebe uma chamada por trecho e usa
+  o nome, a descrição e os termos de cada tema como referência.
+- `terms` procura as palavras e expressões completas do catálogo, ignorando caixa e
+  acentos. A classificação é local e determinística.
+
+Para selecionar o método em uma ingestão no Compose, use `docker compose exec -e
+RAG_TAG_CLASSIFIER=terms app rag-lab ingest data/documents`. Para aplicar variáveis
+alteradas no `.env` ao serviço inteiro, recrie o serviço com `docker compose up -d app`.
+Um trecho pode receber vários rótulos. A lista contém apenas IDs do catálogo.
+
+A chamada de classificação envia `think: false` ao Ollama. Na API compatível com
+OpenAI, envia `reasoning_effort: none` e solicita um objeto JSON. O endpoint precisa
+aceitar esses parâmetros. No Ollama, modelos cujo pensamento é obrigatório podem
+usar o nível mínimo. Uma falha na classificação interrompe a ingestão do documento
+antes de substituir a versão armazenada.
+
+`POST /query` e `rag-lab query` incluem a lista em `metadata.tags`, tanto nos
+candidatos em `retrieval` quanto nas evidências em `evidence`. `[]` representa um
+trecho sem correspondência ou um registro ingerido antes do tageamento.
+
+Para aplicar mudanças no catálogo a documentos já indexados, execute `rag-lab ingest`
+novamente com a mesma pasta de origem e a configuração de embeddings da base.
+No Compose, use `docker compose up --build -d` para incorporar o catálogo atualizado
+antes de reingerir. Em uma execução feita fora da raiz do laboratório, coloque
+`tags-si.yaml` ao lado da configuração principal selecionada por `--config` ou `RAG_CONFIG`.
+
+O [índice de experimentos](experimentos/README.md) inclui a comparação entre `llm` e
+`terms` nos mesmos trechos, com suporte a gabarito humano.
+
 ## Organização e trabalho em grupos
 
 - `src/rag_lab/config.py`: contrato e validação do YAML.
 - `src/rag_lab/contracts.py`: contrato JSON com atributos extensíveis.
 - `src/rag_lab/ingestion.py`: preparação dos documentos.
+- `src/rag_lab/tagging.py`: validação do catálogo e classificação temática por trecho.
 - `src/rag_lab/storage.py`: SQL e busca vetorial.
 - `src/rag_lab/providers.py`: adaptadores LangChain para modelos.
 - `src/rag_lab/modules/`: um arquivo por técnica/missão.

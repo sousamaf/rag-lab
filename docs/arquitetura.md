@@ -6,7 +6,8 @@
 
 ## Dois fluxos
 
-**Preparação:** arquivos → sentenças/unidades → embeddings opcionais → PostgreSQL.
+**Preparação** segue de arquivos para sentenças/unidades, classificação temática,
+embeddings opcionais e PostgreSQL.
 LangChain divide sentenças muito longas; posições sequenciais permitem recuperar
 vizinhos. Cada documento é substituído em uma transação, evitando duplicação em uma
 reingestão. Uma falha na geração de embeddings preserva a versão anterior do documento.
@@ -56,6 +57,25 @@ Cada evidência carrega `id`, `document_id`, `source`, `position`, `text`, `meta
 expansão/compressão alteram `context_text`. O orçamento de contexto é em caracteres,
 não tokens. A lista final `evidence` contém somente os trechos enviados ao LLM, com
 numeração correspondente ao contexto. Os candidatos anteriores continuam em `retrieval`.
+
+### Rótulos temáticos
+
+A ingestão valida o [catálogo YAML](../config/tags-si.yaml) uma vez e seleciona o
+método por `tagging_method`. O método `llm` usa as descrições e os exemplos em uma
+chamada por chunk com pensamento desativado e saída JSON. O método `terms` busca
+palavras e expressões completas sem distinção de caixa e acentos. Ambos consultam
+o texto original do chunk e atribuem apenas IDs do catálogo, em ordem lexicográfica
+e sem duplicatas. Trechos sem tema e registros legados têm `[]` no envelope. Uma
+falha na classificação interrompe a preparação antes de gravar os chunks do documento.
+
+Os IDs são persistidos no `jsonb` de `rag_chunks.metadata` e seguem em
+`retrieval.<método>[i].metadata.tags` e `evidence[i].metadata.tags`. A lista descreve
+o chunk identificado por `id`, inclusive quando a janela de sentenças incorpora
+texto de vizinhos em `context_text`.
+
+A alteração do catálogo se aplica à próxima ingestão. Reingerir a mesma pasta com
+a configuração de embeddings da base recalcula os rótulos e substitui atômica e
+individualmente os documentos ingeridos.
 
 ## Ativação e bypass
 

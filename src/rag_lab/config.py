@@ -23,6 +23,8 @@ MODULE_ORDER = (
     "sentence",
     "compressao",
 )
+TaggingMethod = Literal["llm", "terms"]
+TAGGING_METHOD_ENV = "${RAG_TAG_CLASSIFIER:-llm}"
 
 
 class StrictModel(BaseModel):
@@ -65,6 +67,7 @@ class Settings(StrictModel):
     embeddings: EmbeddingConfig
     pipeline: PipelineConfig
     modules: dict[str, Switch]
+    tagging_method: TaggingMethod = "llm"
 
     @model_validator(mode="after")
     def validate_pipeline(self) -> Settings:
@@ -99,8 +102,14 @@ def _expand(value):
     return re.sub(r"\$\{([A-Za-z_][A-Za-z0-9_]*)(?::-([^}]*))?\}", replace, value)
 
 
+def configuration_path(path: str | Path | None = None) -> Path:
+    return Path(path or os.getenv("RAG_CONFIG", "config/lab.yaml"))
+
+
 def load_settings(path: str | Path | None = None) -> Settings:
     load_dotenv(Path.cwd() / ".env", override=False)
-    config_path = Path(path or os.getenv("RAG_CONFIG", "config/lab.yaml"))
-    with config_path.open(encoding="utf-8") as file:
-        return Settings.model_validate(_expand(yaml.safe_load(file)))
+    with configuration_path(path).open(encoding="utf-8") as file:
+        data = yaml.safe_load(file)
+    if isinstance(data, dict):
+        data.setdefault("tagging_method", TAGGING_METHOD_ENV)
+    return Settings.model_validate(_expand(data))

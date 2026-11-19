@@ -1,5 +1,6 @@
 from copy import deepcopy
 from pathlib import Path
+from unittest.mock import Mock
 
 import pytest
 import yaml
@@ -14,6 +15,7 @@ ROOT = Path(__file__).resolve().parents[1]
 @pytest.fixture
 def settings(monkeypatch):
     monkeypatch.setenv("OLLAMA_BASE_URL", "http://localhost:11434")
+    monkeypatch.setenv("RAG_TAG_CLASSIFIER", "llm")
     # Leitura pelo mesmo caminho de produção garante que o exemplo versionado seja válido.
     from rag_lab.config import load_settings
 
@@ -34,6 +36,7 @@ class MemoryStore:
                 source="a.txt",
                 position=0,
                 text="RAG recupera documentos relevantes.",
+                metadata={"tags": ["dados-e-inteligencia-artificial"]},
             ),
             Chunk(
                 id="b",
@@ -79,6 +82,7 @@ class FakeProviders:
 
     def __init__(self):
         self.calls = []
+        self.chat_json = Mock(return_value='{"tags": []}')
 
     def chat(self, system, user):
         self.calls.append((system, user))

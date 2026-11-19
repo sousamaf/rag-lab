@@ -263,3 +263,7 @@ data/results/
 
 # Ferramentas de geração da documentação
 node_modules/
+
+# Experimentos
+experimentos/results
+experimentos/analises

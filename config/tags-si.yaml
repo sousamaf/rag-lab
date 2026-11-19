@@ -1,0 +1,144 @@
+# Catálogo de classificação para o bacharelado em Sistemas de Informação.
+# Os termos são exemplos para orientar o LLM. Os IDs saem em metadata.tags.
+rotulos:
+  - id: programacao-e-algoritmos
+    nome: Programação e algoritmos
+    descricao: Abrange linguagens e paradigmas de programação, algoritmos, estruturas de dados e análise de complexidade.
+    termos:
+      - algoritmo
+      - algoritmos
+      - estruturas de dados
+      - complexidade assintótica
+      - orientação a objetos
+      - programação funcional
+      - programação concorrente
+      - recursão
+      - tabela hash
+      - árvore binária
+      - python
+      - javascript
+
+  - id: engenharia-de-software
+    nome: Engenharia de software
+    descricao: Cobre requisitos, arquitetura de software, implementação, testes, integração e manutenção de sistemas.
+    termos:
+      - engenharia de software
+      - requisitos funcionais
+      - requisitos não funcionais
+      - análise de requisitos
+      - caso de uso
+      - uml
+      - arquitetura de software
+      - padrões de projeto
+      - teste unitário
+      - testes de software
+      - integração contínua
+      - api rest
+
+  - id: bancos-de-dados
+    nome: Bancos de dados
+    descricao: Trata da modelagem, consulta, persistência e integridade de dados em bancos relacionais e não relacionais.
+    termos:
+      - banco de dados
+      - bancos de dados
+      - modelagem de dados
+      - modelo entidade relacionamento
+      - sql
+      - nosql
+      - postgresql
+      - mongodb
+      - chave estrangeira
+      - normalização de dados
+      - transação de banco de dados
+
+  - id: dados-e-inteligencia-artificial
+    nome: Ciência de dados e inteligência artificial
+    descricao: Cobre análise e visualização de dados, apoio à decisão, aprendizagem de máquina, IA e recuperação de informação.
+    termos:
+      - ciência de dados
+      - análise de dados
+      - mineração de dados
+      - visualização de dados
+      - business intelligence
+      - aprendizado de máquina
+      - aprendizagem de máquina
+      - inteligência artificial
+      - recuperação de informação
+      - embeddings
+      - tf-idf
+      - bm25
+      - rag
+
+  - id: infraestrutura-e-redes
+    nome: Infraestrutura, redes e sistemas distribuídos
+    descricao: Abrange arquitetura de computadores, sistemas operacionais, redes, serviços distribuídos, virtualização e nuvem.
+    termos:
+      - arquitetura de computadores
+      - sistema operacional
+      - sistemas operacionais
+      - redes de computadores
+      - tcp ip
+      - dns
+      - roteamento
+      - sistemas distribuídos
+      - máquinas virtuais
+      - computação em nuvem
+      - docker
+
+  - id: seguranca-e-privacidade
+    nome: Segurança da informação e privacidade
+    descricao: Trata da proteção de sistemas e dados, identidade e acesso, criptografia, incidentes e privacidade de dados pessoais.
+    termos:
+      - segurança da informação
+      - segurança de sistemas
+      - controle de acesso
+      - autenticação multifator
+      - criptografia
+      - incidentes de segurança
+      - proteção de dados pessoais
+      - privacidade de dados
+      - lgpd
+
+  - id: gestao-e-governanca-de-ti
+    nome: Gestão, governança e sistemas de informação nas organizações
+    descricao: Abrange processos de negócio, sistemas corporativos, gestão de projetos e serviços de TI, governança e impactos sociais da tecnologia.
+    termos:
+      - governança de ti
+      - processos de negócio
+      - bpmn
+      - arquitetura corporativa
+      - sistemas de informação gerencial
+      - sistemas corporativos
+      - gestão de projetos
+      - gerenciamento de projetos
+      - cobit
+      - itil
+      - ética em computação
+      - inclusão digital
+
+  - id: interacao-humano-computador
+    nome: Interação humano-computador
+    descricao: Abrange projeto e avaliação de interfaces, pesquisa com usuários, usabilidade, acessibilidade digital e experiência de uso.
+    termos:
+      - interação humano computador
+      - interface de usuário
+      - experiência do usuário
+      - pesquisa com usuários
+      - design de interação
+      - usabilidade
+      - acessibilidade digital
+      - wcag
+
+  - id: fundamentos-matematicos
+    nome: Fundamentos matemáticos e pesquisa operacional
+    descricao: Cobre lógica formal, matemática discreta, probabilidade, estatística e métodos matemáticos de otimização.
+    termos:
+      - lógica proposicional
+      - lógica matemática
+      - matemática discreta
+      - teoria dos conjuntos
+      - teoria dos grafos
+      - distribuição de probabilidade
+      - inferência estatística
+      - pesquisa operacional
+      - programação linear

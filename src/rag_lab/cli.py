@@ -9,7 +9,7 @@ from pathlib import Path
 
 from pydantic import ValidationError
 
-from rag_lab.config import load_settings
+from rag_lab.config import configuration_path, load_settings
 from rag_lab.contracts import Envelope
 from rag_lab.doctor import check_environment
 from rag_lab.ingestion import ingest_directory
@@ -17,6 +17,7 @@ from rag_lab.modules.base import Services
 from rag_lab.pipeline import Pipeline
 from rag_lab.providers import Providers
 from rag_lab.storage import PostgresStore
+from rag_lab.tagging import TagCatalogError, TagClassificationError
 
 
 def main() -> None:
@@ -52,7 +53,13 @@ def main() -> None:
             services.store.initialize()
             result = {"initialized": True}
         elif args.command == "ingest":
-            result = ingest_directory(args.directory, settings, services.store, services.providers)
+            result = ingest_directory(
+                args.directory,
+                settings,
+                services.store,
+                services.providers,
+                config_path=configuration_path(args.config),
+            )
         elif args.command == "query":
             if not args.question.strip():
                 parser.error("A pergunta deve conter texto.")
@@ -76,6 +83,9 @@ def main() -> None:
                 f"Configuração inválida: {'.'.join(map(str, issue['loc']))}: {issue['msg']}",
                 file=sys.stderr,
             )
+        sys.exit(1)
+    except (TagCatalogError, TagClassificationError) as error:
+        print(error, file=sys.stderr)
         sys.exit(1)
     except Exception as error:
         print(
