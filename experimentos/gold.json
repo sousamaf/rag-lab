@@ -1,0 +1,58 @@
+[
+  {
+    "id": "31e017d3c2d78eef61aa420d86a4fd184bb7de238b168a1a5784637b8971dcd6",
+    "source": "rag.txt",
+    "position": 0,
+    "text": "RAG significa Retrieval-Augmented Generation, ou geração aumentada por recuperação.",
+    "tags": ["dados-e-inteligencia-artificial"]
+  },
+  {
+    "id": "7cef4ac58a682ee839ea0752262e7452d2d734501ab0a82a957f6ea3124713bf",
+    "source": "rag.txt",
+    "position": 1,
+    "text": "Um sistema RAG prepara uma base de documentos, recupera trechos relevantes e usa esses trechos para orientar a resposta de um modelo de linguagem.",
+    "tags": ["dados-e-inteligencia-artificial"]
+  },
+  {
+    "id": "7483005f4a65bf7479ae7eb6637bba94c0c77ac135b0ef77381b5e80279fdf21",
+    "source": "rag.txt",
+    "position": 2,
+    "text": "A etapa de ingestão organiza os documentos e produz unidades textuais pesquisáveis.",
+    "tags": ["dados-e-inteligencia-artificial"]
+  },
+  {
+    "id": "a22211f9ba604ce50512fb7adf5ae8511eaba7df4e6918e9b1df9c45cdd7e04b",
+    "source": "rag.txt",
+    "position": 3,
+    "text": "Embeddings representam textos como vetores numéricos para permitir busca por similaridade semântica.",
+    "tags": ["dados-e-inteligencia-artificial"]
+  },
+  {
+    "id": "22b936c25f0db9f5e9bbfe4790916b8aa6df504f93f3a7898ba0a885b0a4a8fe",
+    "source": "rag.txt",
+    "position": 4,
+    "text": "TF-IDF e BM25 são técnicas de busca lexical baseadas nos termos dos documentos e da consulta.",
+    "tags": ["dados-e-inteligencia-artificial", "fundamentos-matematicos"]
+  },
+  {
+    "id": "00828036f02734d79ef72c87fbea9e788eaeb03dc87254fbbaa12c95449be690",
+    "source": "rag.txt",
+    "position": 5,
+    "text": "A busca híbrida combina rankings de métodos de recuperação diferentes.",
+    "tags": ["dados-e-inteligencia-artificial"]
+  },
+  {
+    "id": "b7e23607a6342b0cb70410de527fce2e33b79fcfb5967bea7dd6acfcb3123f41",
+    "source": "rag.txt",
+    "position": 6,
+    "text": "Reranking reordena os candidatos após a recuperação inicial.",
+    "tags": ["dados-e-inteligencia-artificial"]
+  },
+  {
+    "id": "28c6087fe4603ce7a659222b0ce04b33cf6fe4f5fd21ed3f45097bc6e38c5a34",
+    "source": "rag.txt",
+    "position": 7,
+    "text": "Uma resposta deve indicar as fontes usadas e reconhecer quando a base não contém evidências suficientes.",
+    "tags": []
+  }
+]
