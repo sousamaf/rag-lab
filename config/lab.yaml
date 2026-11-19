@@ -14,14 +14,14 @@ llm:
 embeddings:
   provider: ollama
   base_url: ${OLLAMA_BASE_URL:-http://localhost:11434}
-  model: nomic-embed-text
+  model: embeddinggemma:300m
   api_key_env: EMBEDDING_API_KEY
   dimensions: 768              # deve corresponder à saída real do modelo
   timeout: 120
 
 pipeline:
-  top_k: 5                     # quantidade final de fontes
-  candidate_k: 12              # candidatos por recuperador e consulta
+  top_k: 5                    # quantidade final de fontes
+  candidate_k: 12             # candidatos por recuperador e consulta
   rrf_k: 60                   # constante da fusão por ranking
   expanded_queries: 3         # limite de reformulações/subperguntas
   sentence_radius: 1          # sentenças vizinhas de cada lado
