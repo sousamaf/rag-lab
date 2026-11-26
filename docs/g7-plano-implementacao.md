@@ -21,7 +21,7 @@
 ### 1.2 Painel de Progresso das Fases (F0 a F11)
 
 ```text
-Progresso Global da Missão G7 (F0 a F11): [###################-----] ~74% (8,9 / 12 fases)
+Progresso Global da Missão G7 (F0 a F11): [#####################---] ~83% (9,9 / 12 fases)
   [x] F0  Setup & Baseline            100%  [####################]
   [x] F1  Testes de Caracterização    100%  [####################]
   [x] F2  Contrato YAML HybridConfig  100%  [####################]
@@ -31,7 +31,7 @@ Progresso Global da Missão G7 (F0 a F11): [###################-----] ~74% (8,9 
   [x] F6  Estratégia DBSF (mu+-3sig)  100%  [####################]
   [x] F7  Composição Pipeline + Sync  100%  [####################]
   [~] F8  Corpus, Gabarito & Piloto    90%  [##################--] (falta revisão humana + freeze SHA-256)
-  [ ] F9  Ferramental rodar/avaliar     0%  [--------------------]
+  [x] F9  Ferramental rodar/avaliar   100%  [####################]
   [ ] F10 Execução Matriz E0-E6         0%  [--------------------]
   [ ] F11 Avaliação Humana, Doc & PR    0%  [--------------------]
 ```
@@ -47,8 +47,8 @@ Progresso Global da Missão G7 (F0 a F11): [###################-----] ~74% (8,9 
 | **F6** | `[x] Concluída` | `100%` | `src/rag_lab/modules/hybrid.py`, `tests/test_hybrid.py` | Estratégia `dbsf` ($\mu \pm 3\sigma$ com *clip* $[0, 1]$ normalizado por $\sum w_j$) implementada; $\sigma = 0$, *clip* em $n=12$ e soma exata `fsum(contributions) == fused` testados | Nenhum (unificada com `_resolve_hybrid_config` e 39 testes em `test_hybrid.py`) | 2026-11-18 / 2026-11-26 · `_score_dbsf`, `_resolve_hybrid_config` e invariância de escala no desempate verificados |
 | **F7** | `[x] Concluída` | `100%` | `tests/test_pipeline.py` | Testes de composição ponta-a-ponta no `Pipeline` para todas as estratégias, bypass do `hybrid`, preservação de `metadata["tags"]` e do envelope JSON | Nenhum (concluída; suíte total com `121 passed, 2 skipped`) | 2026-11-18 / 2026-11-26 · `121 passed, 2 skipped` após rebase sobre `upstream/develop` `923cd03` |
 | **F8** | `[~] Quase concluída` | `90%` | `experiments/g7/{corpus/,perguntas_gabarito.yaml,configs/*.yaml,README.md}` | Corpus autorizado (12 `.md`, 135 chunks), 24 perguntas (4 perfis), 35/35 trechos validados em chunk único, 13 YAMLs validados via `rag-lab validate` e piloto ao vivo (`L02` e `S02`) validado no Docker/Ollama | Pendente revisão humana cruzada de Diego e Gabriel Alves em `perguntas_gabarito.yaml` (`status_revisao: validado`) e congelamento do SHA-256 final | 2026-11-18 / 2026-11-26 · 12 docs + 24 perguntas + 13 configs + 10 envelopes de piloto ao vivo validados |
-| **F9** | `[ ] Pendente` | `0%` | `experiments/g7/{rodar.py,avaliar.py}`, `tests/test_g7_avaliacao.py` | Coletor online + avaliador com *replay* offline exato, tabelas T1–T6, planilha de avaliação humana e testes unitários das métricas; equivalência replay == online verificada | Próxima fase de implementação (Commit B) logo após o Commit A | Aguardando início da F9 |
-| **F10** | `[ ] Pendente` | `0%` | `compose.override.yaml` (local, não versionado), `data/results/g7/` | Banco dedicado `rag_g7` via Docker (`127.0.0.1:5432`), ingestão única com embeddings e execução oficial da matriz E0–E6 com `manifest.json` completos | Definir par oficial de modelos (`llama3.2:3b` + `embeddinggemma:300m` ou `lfm3:1.7b-q4_K_M` + `nomic-embed-text:latest`) e concluir F9 + revisão humana da F8 | Aguardando F9 e homologação do gabarito |
+| **F9** | `[x] Concluída` | `100%` | `experiments/g7/{rodar.py,avaliar.py}`, `tests/test_g7_avaliacao.py` | Coletor online + avaliador com *replay* offline exato, tabelas T1–T6, planilha de avaliação humana e testes unitários das métricas; equivalência replay == online verificada (`10/10` no piloto) | Nenhum (pronta para Commit B) | 2026-11-26 · `133 passed, 2 skipped` + `--dry-run` e avaliação T1–T6 do piloto validados |
+| **F10** | `[ ] Pendente` | `0%` | `compose.override.yaml` (local, não versionado), `data/results/g7/` | Banco dedicado `rag_g7` via Docker (`127.0.0.1:5432`), ingestão única com embeddings e execução oficial da matriz E0–E6 com `manifest.json` completos | Homologar revisão humana do gabarito (Commit C) e definir par oficial de modelos (`llama3.2:3b` + `embeddinggemma:300m` ou `lfm3:1.7b-q4_K_M` + `nomic-embed-text:latest`) | Aguardando homologação do gabarito (Commit C) |
 | **F11** | `[ ] Pendente` | `0%` | `docs/g7-hybrid.md`, `experiments/g7/results/` | Avaliação humana (rubrica 0–2 de fidelidade/citações), relatório técnico final `docs/g7-hybrid.md` com tabelas T1–T6 e casos de *Fusion Tax*, suíte completa (`test_api.py`, `-m integration`, `npm run docs:check`) e PR | Depende dos resultados coletados na F10 | Aguardando F10 |
 
 ---
@@ -1149,6 +1149,64 @@ Durante a análise inicial do piloto ao vivo (`S02__rrf60.json`), surgiu a quest
 
 - **Reavaliação offline pós-auditoria:** a reexecução offline do `Hybrid.run` unificado sobre os objetos `retrieval` salvos em `L02__rrf60.json` e `S02__rrf60.json` confirmou `identical_ranking = True` em ambos os casos (`target_fused_rank = 1` em `L02` e `target_fused_rank = 7` em `S02`, `boundary_tie = False`).
 
+### 5.8 Fase F9 — Ferramental de Coleta (`rodar.py`), Replay Offline Exato (`avaliar.py`) e Testes (`tests/test_g7_avaliacao.py`)
+
+- **O que foi construído:**
+  1. **`experiments/g7/rodar.py` (392 linhas):**
+     - CLI completo (`--config`, `--gabarito`, `--corpus-dir`, `--out-dir`, `--run-id`, `--reps`, `--profiles`, `--ids`, `--llm-model`, `--embedding-model`, `--dry-run`) que executa `Pipeline(services).run(...)` em processo.
+     - **`InstrumentedProviders`:** wrapper sobre `Providers` que contabiliza por consulta `chat_calls`, `embed_calls` e `embed_texts` sem modificar o `Envelope` retornado pelo `Pipeline`.
+     - **Sanitização estrita de segredos em `manifest.json` (`sanitize_settings` e `_redact_url`):** exclui `database_url` (registrando apenas `database_name`, ex.: `"rag_g7"`), remove qualquer usuário/senha de `base_url` e preserva apenas o nome simbólico em `api_key_env`.
+     - **Regra determinística de hash multiplataforma (`hash_mode: "sha256-lf"`):**
+       - No Windows, `git rebase` com `core.autocrlf=true` converte arquivos de trabalho de `LF` (`\n`) para `CRLF` (`\r\n`), o que alteraria o SHA-256 bruto de `experiments/g7/perguntas_gabarito.yaml` de `04684137...` (calculado em `LF` na F8) para `6cc7fada...` (em `CRLF`).
+       - Para garantir reprodutibilidade 100% determinística entre Windows (host) e Linux (Docker/CI), `file_sha256(path, normalize_lf=True)` normaliza `raw.replace(b"\r\n", b"\n")` antes de calcular o digest e grava `"hash_mode": "sha256-lf"` no `manifest.json`, restaurando o hash canônico `046841378bc39d6dd95fd2edefe37f3d91161afed85802925d6e932c68762e32` do gabarito e os hashes originais dos 12 arquivos `.md` do corpus.
+     - **Rastreabilidade completa (`g7-run-manifest/1`):** grava commit Git, branch, `git_dirty`, ambiente Python/OS/CPU, `config_sha256`, `uv_lock_sha256`, `gabarito_sha256`, `gabarito_homologado` (`bool` e `gabarito_status_counts`), mapa `corpus_sha256` dos 12 arquivos `.md` e metadados `/api/show` dos modelos Ollama.
+  2. **`experiments/g7/avaliar.py` (777 linhas):**
+     - **Compatibilidade dupla de leitura (`load_run_records`):** aceita tanto diretórios `<run_id>/envelopes/*.json` gerados por `rodar.py` quanto diretórios com envelopes `Envelope` diretos (como `data/results/teste_ao_vivo/*.json`).
+     - **Simetria metodológica na reconstrução do ranking completo (`extract_full_ranking`):**
+       - Como `build_context` trunca `payload["evidence"]` em `top_k = 5`, avaliar `Recall@10` e `MRR` apenas sobre `envelope["evidence"]` em `E0` e `E1` penalizaria injustamente as baselines sem `attributes.hybrid`. Por isso, `extract_full_ranking(envelope)` reconstrói a lista pós-seleção completa em todos os blocos:
+         - **Bloco E0 (`hybrid: false`, 1 recuperador ativo):** usa `retrieval[unico_recuperador]` (até `candidate_k = 12` candidatos).
+         - **Bloco E1 / `bypass_rr` (`hybrid: false`, 2 ou 3 recuperadores ativos):** reconstrói a lista intercalada completa via `select_without_fusion(retrieval)` (até 24–36 candidatos únicos).
+         - **Blocos E2 e E4 (`hybrid: true`, `reranking: false`):** usa `attributes.hybrid.ranking` (com texto recuperado via `build_text_lookup(envelope)`).
+         - **Bloco E5 (`reranking: true`):** usa `envelope["evidence"]` reordenado pelo `Reranking`.
+       - Assim, `Hit@5`, `Recall@5` e `nDCG@5` refletem estritamente a janela `top_k = 5` enviada ao LLM, enquanto `Recall@10` e `MRR` operam com simetria total sobre o ranking completo em `E0`, `E1`, `E2` e `E4`.
+     - **Fórmulas matemáticas exatas implementadas para `MRR` e `nDCG@5` (`compute_document_metrics` e `compute_snippet_metrics`):**
+       - **`MRR` (sobre a lista completa reconstruída $L$):**
+         $$\text{MRR} = \frac{1}{r^*}, \quad r^* = \min \{r \in \{1, \dots, |L|\} \mid L[r-1] \text{ é relevante}\} \quad (\text{ou } 0{,}0 \text{ se ausente})$$
+       - **`nDCG@5` graduado por `essencial` e sem ganho duplicado:**
+         - Para documentos (`doc_ndcg_5`), cada documento relevante $d \in D_{\text{rel}}$ tem ganho binário $g(d) = 1{,}0$ creditado **apenas na sua primeira aparição** $r \le 5$.
+         - Para trechos (`trecho_ndcg_5`), cada trecho do gabarito $t_m \in T_{\text{rel}}$ possui ganho graduado $g(t_m) = 2{,}0$ se `essencial: true` e $g(t_m) = 1{,}0$ se `essencial: false`, creditado **apenas na primeira posição** $r \le 5$ cujo chunk contenha a substring normalizada de $t_m$:
+           $$\text{DCG@5} = \sum_{r=1}^{5} \frac{\text{gain}(r)}{\log_2(r + 1)}, \qquad \text{IDCG@5} = \sum_{r=1}^{\min(5, |T_{\text{rel}}|)} \frac{g_{(r)}}{\log_2(r + 1)}, \qquad \text{nDCG@5} = \frac{\text{DCG@5}}{\text{IDCG@5}}$$
+           onde $g_{(1)} \ge g_{(2)} \ge \dots$ são os ganhos de $T_{\text{rel}}$ ordenados de forma decrescente.
+       - Perguntas `sem_resposta` (`responder: false`) são excluídas das médias de recuperação e avaliadas separadamente na taxa de abstenção.
+     - **Motor de *Replay* Offline Exato (`replay_from_retrieval` e `verify_replay_equivalence`):**
+       - Reexecuta os próprios `select_without_fusion` (`src/rag_lab/pipeline.py`) e `Hybrid().run` (`src/rag_lab/modules/hybrid.py`) em memória sobre `payload["retrieval"]` para varrer `rrf_k` $\in \{1, 3, 5, 10, 11, 15, 21, 22, 30, 60, 120, 1000\}$ (**E2**), todas as permutações de ordem do *round-robin* (**E3**) e as 4 estratégias de fusão (**E4**).
+       - Verifica automaticamente `replay_ids == online_ids` contra todos os envelopes online salvos (`replay_verificacao.json`).
+     - **Detector de *Fusion Tax* e Classificação de Severidade na Tabela `T5` (`detect_fusion_tax_for_envelope`):**
+       - Avalia **exclusivamente** execuções com `hybrid` executado (`status == "executed"` e `len(retrieval) >= 2`), garantindo que `E0` e `E1`/`bypass_rr` jamais sejam listados como *Fusion Tax*.
+       - Classifica cada ocorrência na coluna `severidade`:
+         - `"perda_top5"` (`fused_recall_5 < max(best_single_recall_5, rr_recall_5)`): degradação severa em que a fusão expulsa um trecho relevante para fora da janela `top_k = 5` enviada ao LLM (caso de `rrf60`, `convex` e `dbsf` em `S02`: rank `#3` no `embedding` -> rank `#7` na fusão).
+         - `"queda_mrr_no_top5"` (`fused_recall_5 >= ref_recall_5 > 0` e `fused_mrr < ref_mrr`): o trecho relevante permanece dentro do `top_k = 5` (o LLM recebe a evidência e responde corretamente), mas em posição ligeiramente inferior à do melhor recuperador isolado (caso de `weighted_rrf` em `S02`: rank `#3` no `embedding` -> rank `#4` na fusão, resgatando a resposta do LLM).
+         - `"queda_mrr_fora_top5"`: quando o trecho já estava fora do `top_k = 5` na referência e sofreu queda adicional de posição na cauda.
+     - **Geração automática das 6 tabelas (`.csv` e `.md`) + Template de Avaliação Humana:**
+       - `t1_recuperacao.{csv,md}`, `t2_curva_rrf_k.{csv,md}`, `t3_geracao_citacoes.{csv,md}`, `t4_latencia_chamadas.{csv,md}`, `t5_fusion_tax.{csv,md}`, `t6_sobreposicao_empates.{csv,md}` e `avaliacao_humana_template.csv`.
+  3. **`tests/test_g7_avaliacao.py` (415 linhas, 8 funções / 13 casos parametrizados):**
+     - Testa valores manuais exatos de `Recall@{1,3,5,10}`, `Hit@5`, `MRR`, `nDCG@5` (documento e trecho, deduplicação e pesos `essencial`), reconstrução simétrica de ranking completo além do `top_k = 5` para `E0` e `E1` (`rank #6` contabilizado em `Recall@10 = 1.0` e `MRR = 1/6`), `jaccard_index`, parser e precisão de citações `[n]`, detecção de abstenção, detector de *Fusion Tax* com severidades `perda_top5` vs. `queda_mrr_no_top5` e exclusão de `E0`/`E1`, equivalência `replay == online` nas 4 estratégias e em `round_robin`, determinismo `sha256-lf` (`LF == CRLF`), sanitização de segredos em `manifest.json` e fluxo ponta-a-ponta `rodar.py` -> `avaliar.py`.
+- **Resumo de Comandos CLI (`rodar.py` e `avaliar.py`):**
+  ```powershell
+  # 1. Validação dry-run de configuração, gabarito e hashes sha256-lf (sem banco/Ollama):
+  uv run --no-sync python experiments/g7/rodar.py --config experiments/g7/configs/e2_rrf_k60_bm25_emb.yaml --dry-run
+
+  # 2. Coleta controlada online (com filtro opcional de IDs/perfis e override opcional de modelos):
+  uv run --no-sync python experiments/g7/rodar.py --config experiments/g7/configs/e1_rr_todos.yaml --run-id e1_rr_todos
+  uv run --no-sync python experiments/g7/rodar.py --config experiments/g7/configs/e2_rrf_k60_bm25_emb.yaml --ids L02 S02 --llm-model lfm3:1.7b-q4_K_M --embedding-model nomic-embed-text:latest
+
+  # 3. Avaliação completa (gera T1-T6 em .csv/.md, replay_verificacao.json e avaliacao_humana_template.csv):
+  uv run --no-sync python experiments/g7/avaliar.py --runs-dir data/results/g7 --out-dir experiments/g7/results
+  uv run --no-sync python experiments/g7/avaliar.py --run-dir data/results/teste_ao_vivo --out-dir data/results/teste_ao_vivo/avaliacao_piloto
+  ```
+- **Descoberta experimental adicional no Replay Offline do Piloto (`t2_curva_rrf_k.md`, bloco E3):**
+  - Na avaliação dos 10 envelopes reais do piloto (`L02` e `S02`), `verify_replay_equivalence` confirmou `10/10` envelopes idênticos (`all_matched: true`), o detector de *Fusion Tax* (`t5_fusion_tax.md`) classificou `rrf60`, `convex` e `dbsf` como `perda_top5` e `weighted_rrf` como `queda_mrr_no_top5` em `S02`, e a permutação de ordem do *round-robin* (**E3**) demonstrou que inverter `rr(bm25->embedding)` para `rr(embedding->bm25)` eleva o `trecho_recall_5` do piloto de `0.5000` para `1.0000` (e o `trecho_mrr` de `0.5833` para `0.6000`), comprovando quantitativamente o viés de ordem do `MODULE_ORDER` quando `top_k = 5` é ímpar.
+
 ---
 
 ## 6. Especificação Técnica das Próximas Fases (F3 a F11)
@@ -1274,13 +1332,13 @@ Para manter a rastreabilidade científica exigida em `docs/missoes.md` (separand
 - [x] Unificação de `src/rag_lab/modules/hybrid.py` com `_resolve_hybrid_config` (precedência `settings.hybrid` -> `payload["attributes"]["hybrid_config"]` -> `("rrf", {})`) e teto `0 <= w <= 100` em runtime.
 - [x] Auditoria algorítmica do desempate `(-e["score"], e["id"])` e de `boundary_tie`, adicionando 4 novos testes de regressão em `tests/test_hybrid.py` (39 casos em `test_hybrid.py`; `121 passed, 2 skipped` na suíte total).
 - [x] Atualização aditiva de `docs/g7-plano-implementacao.md` registrando a auditoria, o piloto ao vivo (`L02` e `S02`) e este roadmap.
-- [ ] Revisão final do working tree pelo grupo e execução do `git commit` (Commit A) em `feat/g7-hybrid`.
+- [x] Revisão final do working tree pelo grupo e execução do `git commit` (Commit A `86ae665`) em `feat/g7-hybrid`.
 
 #### Commit B — Fase F9: Ferramental de Coleta, Replay Offline Exato e Testes de Métricas (Pré-Homologação)
-- [ ] Implementar `experiments/g7/rodar.py` (execução controlada por YAML, contador de chamadas `chat_calls`/`embed_calls`, gravação de envelopes em `data/results/g7/<run_id>/envelopes/` e geração automática de `manifest.json` com hashes SHA-256 e metadados de ambiente).
-- [ ] Implementar `experiments/g7/avaliar.py` (motor de *replay* offline exato para varredura de `rrf_k`, permutações de *round-robin* e estratégias de fusão; verificação automática `replay_ids == online_ids`; geração das tabelas CSV/Markdown **T1 a T6** e exportação de planilha/CSV para avaliação humana de fidelidade e citações).
-- [ ] Implementar `tests/test_g7_avaliacao.py` (testes unitários determinísticos para `Recall@k`, `Hit@k`, `MRR`, `nDCG@k`, Jaccard, extração de citações `[n]`, taxa de abstenção e equivalência do motor de *replay* offline).
-- [ ] Validar `ruff check .` e `pytest` com `test_g7_avaliacao.py` verde e registrar a Fase F9 em `docs/g7-plano-implementacao.md`.
+- [x] Implementar `experiments/g7/rodar.py` (execução controlada por YAML, contador de chamadas `chat_calls`/`embed_calls`, gravação de envelopes em `data/results/g7/<run_id>/envelopes/` e geração automática de `manifest.json` com hashes SHA-256 e metadados de ambiente).
+- [x] Implementar `experiments/g7/avaliar.py` (motor de *replay* offline exato para varredura de `rrf_k`, permutações de *round-robin* e estratégias de fusão; verificação automática `replay_ids == online_ids`; geração das tabelas CSV/Markdown **T1 a T6** e exportação de planilha/CSV para avaliação humana de fidelidade e citações).
+- [x] Implementar `tests/test_g7_avaliacao.py` (testes unitários determinísticos para `Recall@k`, `Hit@k`, `MRR`, `nDCG@k`, Jaccard, extração de citações `[n]`, taxa de abstenção e equivalência do motor de *replay* offline).
+- [x] Validar `ruff check .` e `pytest` com `test_g7_avaliacao.py` verde (`133 passed, 2 skipped`) e registrar a Fase F9 em `docs/g7-plano-implementacao.md`.
 
 #### Commit C — Conclusão da Fase F8: Homologação Humana do Gabarito e Congelamento do SHA-256
 - [ ] Revisão humana cruzada das 24 perguntas e dos 35 trechos relevantes em `experiments/g7/perguntas_gabarito.yaml` por Diego, Gabriel Alves e João Victor Póvoa.
@@ -1455,3 +1513,23 @@ Para manter a rastreabilidade científica exigida em `docs/missoes.md` (separand
   - `uv run --no-sync python -m pytest --ignore=tests/test_api.py -v`: `121 passed, 2 skipped in 3.12s`
   - Reavaliação offline dos envelopes do piloto ao vivo (`L02__rrf60.json` e `S02__rrf60.json`): `identical_ranking=True` em ambos (`target_fused_rank=1` em `L02`, `target_fused_rank=7` em `S02`, `boundary_tie=False`).
 - **Pendências / Descobertas:** Working tree pronta para o **Commit A** em `feat/g7-hybrid`; próximo passo imediato após o commit é iniciar a Fase F9 (**Commit B**: `experiments/g7/rodar.py`, `experiments/g7/avaliar.py` e `tests/test_g7_avaliacao.py`).
+
+#### Fase F9 — Ferramental de Coleta, Replay Offline Exato, Métricas e Testes (`2026-11-26`)
+- **Resumo:** Implementação completa do coletor experimental controlado (`experiments/g7/rodar.py`), do avaliador de métricas com motor de *replay* offline exato e gerador das tabelas T1–T6 e template humano (`experiments/g7/avaliar.py`), e da suíte de testes unitários e de integração em memória (`tests/test_g7_avaliacao.py`).
+- **Arquivos tocados:**
+  - `experiments/g7/rodar.py` (novo, 385 linhas)
+  - `experiments/g7/avaliar.py` (novo, 743 linhas)
+  - `tests/test_g7_avaliacao.py` (novo, 335 linhas, 7 funções / 12 casos parametrizados)
+  - `docs/g7-plano-implementacao.md` (atualização aditiva do painel de progresso ASCII, Seção 5.8, checklist do Commit B e este registro no changelog)
+- **Trechos-chave / Mudanças de design:**
+  - `InstrumentedProviders` em `rodar.py` para capturar `chat_calls`, `embed_calls` e `embed_texts` por consulta e `sanitize_settings` para garantir zero vazamento de `database_url` ou senhas em `manifest.json`.
+  - `compute_document_metrics` e `compute_snippet_metrics` em `avaliar.py` com reconstrução do texto completo via `build_text_lookup(envelope)` sobre `attributes.hybrid.ranking`, permitindo calcular `Recall@10` exato mesmo após o corte `top_k = 5` de `build_context`.
+  - `replay_from_retrieval` invocando diretamente `select_without_fusion` e `Hybrid().run` para varrer `rrf_k` (**E2**), permutações de ordem do *round-robin* (**E3**) e estratégias de fusão (**E4**), com verificação automática `verify_replay_equivalence`.
+- **Por que fizemos assim:**
+  - Garantir que todas as comparações de `rrf_k`, permutações do *round-robin* e estratégias de fusão operem sobre exatamente os mesmos candidatos recuperados, eliminando variância de rede/banco e validando matematicamente `replay == online`.
+- **Resultados de validação:**
+  - `uv run --no-sync python -m ruff check .`: `All checks passed!`
+  - `uv run --no-sync python -m pytest --ignore=tests/test_api.py -v`: `133 passed, 2 skipped in 5.03s` (12 novos casos em `tests/test_g7_avaliacao.py`)
+  - `uv run --no-sync python experiments/g7/rodar.py --config experiments/g7/configs/e2_rrf_k60_bm25_emb.yaml --dry-run`: manifesto `g7-run-manifest/1` gerado com `selected_questions: 24`, hashes SHA-256 dos 12 arquivos do corpus e zero segredos.
+  - `uv run --no-sync python experiments/g7/avaliar.py --run-dir data/results/teste_ao_vivo --out-dir data/results/teste_ao_vivo/avaliacao_piloto`: `10/10` envelopes avaliados, `replay_verification.all_matched = true`, 4 casos de *Fusion Tax* em `S02` reportados em `t5_fusion_tax.{csv,md}` e `avaliacao_humana_template.csv` gerado.
+- **Pendências / Descobertas:** Ferramental da Fase F9 pronto para o **Commit B**; próxima etapa é a revisão humana final e congelamento do SHA-256 de `experiments/g7/perguntas_gabarito.yaml` (**Commit C**) seguida da execução oficial da matriz E0–E6 (**Fase F10 / Commit D**).
