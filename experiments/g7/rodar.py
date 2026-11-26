@@ -155,30 +155,68 @@ def git_metadata(repo_root: Path = REPO_ROOT) -> dict[str, Any]:
 
 def query_ollama_model_info(base_url: str, model: str, dry_run: bool = False) -> dict[str, Any]:
     if dry_run:
-        return {"model": model, "digest": None, "reason": "dry_run"}
-    url = base_url.rstrip("/") + "/api/show"
-    try:
-        response = httpx.post(url, json={"name": model}, timeout=3.0)
-        response.raise_for_status()
-        payload = response.json()
-        model_info = payload.get("model_info") if isinstance(payload, dict) else None
-        details = payload.get("details") if isinstance(payload, dict) else None
-        digest = payload.get("digest") if isinstance(payload, dict) else None
-        if digest is None and isinstance(model_info, dict):
-            digest = model_info.get("general.Parquet") or model_info.get("general.architecture")
         return {
             "model": model,
-            "digest": digest,
-            "modified_at": payload.get("modified_at") if isinstance(payload, dict) else None,
-            "details": details,
-            "reason": None,
+            "digest": None,
+            "modified_at": None,
+            "details": None,
+            "reason": "dry_run",
         }
+    clean_base = base_url.rstrip("/")
+    tags_url = clean_base + "/api/tags"
+    show_url = clean_base + "/api/show"
+    digest: str | None = None
+    modified_at: Any = None
+    details: Any = None
+    candidate_names = {model, f"{model}:latest"} if ":" not in model else {model}
+
+    try:
+        tags_resp = httpx.get(tags_url, timeout=3.0)
+        tags_resp.raise_for_status()
+        tags_payload = tags_resp.json()
+        models_list = tags_payload.get("models") if isinstance(tags_payload, dict) else None
+        if isinstance(models_list, list):
+            for entry in models_list:
+                if not isinstance(entry, dict):
+                    continue
+                entry_name = str(entry.get("name") or entry.get("model") or "")
+                if entry_name in candidate_names:
+                    raw_digest = entry.get("digest")
+                    if isinstance(raw_digest, str) and raw_digest:
+                        digest = raw_digest
+                    modified_at = entry.get("modified_at")
+                    details = entry.get("details")
+                    break
     except Exception as exc:
         return {
             "model": model,
             "digest": None,
+            "modified_at": None,
+            "details": None,
             "reason": f"offline_or_unreachable: {type(exc).__name__}",
         }
+
+    try:
+        show_resp = httpx.post(show_url, json={"name": model}, timeout=3.0)
+        if show_resp.status_code == 200:
+            show_payload = show_resp.json()
+            if isinstance(show_payload, dict):
+                if modified_at is None:
+                    modified_at = show_payload.get("modified_at")
+                if details is None:
+                    details = show_payload.get("details")
+                if digest is None and isinstance(show_payload.get("digest"), str):
+                    digest = show_payload["digest"]
+    except Exception:
+        pass
+
+    return {
+        "model": model,
+        "digest": digest,
+        "modified_at": modified_at,
+        "details": details,
+        "reason": None if digest is not None else "model_not_found_in_api_tags",
+    }
 
 
 def _parse_filter_list(values: list[str] | None) -> list[str]:
@@ -341,12 +379,12 @@ def run_collection(
     run_dir = Path(args.out_dir) / run_id
     run_dir.mkdir(parents=True, exist_ok=True)
     manifest_path = run_dir / "manifest.json"
+    manifest_path.write_text(
+        json.dumps(manifest, ensure_ascii=False, indent=2, allow_nan=False) + "\n",
+        encoding="utf-8",
+    )
 
     if args.dry_run:
-        manifest_path.write_text(
-            json.dumps(manifest, ensure_ascii=False, indent=2, allow_nan=False) + "\n",
-            encoding="utf-8",
-        )
         return manifest
 
     if services_override is not None:
@@ -369,11 +407,33 @@ def run_collection(
     total_wall_ms = 0.0
     total_calls = {"chat_calls": 0, "embed_calls": 0, "embed_texts": 0}
     completed = 0
+    resumed = 0
+    executed = 0
+    resume_enabled = bool(getattr(args, "resume", False))
 
     for rep in range(1, args.reps + 1):
         for q in selected_questions:
             qid = str(q["id"])
             perfil = str(q.get("perfil", ""))
+            out_file = envelopes_dir / f"{qid}__rep{rep}.json"
+
+            if resume_enabled and out_file.exists():
+                try:
+                    existing = json.loads(out_file.read_text(encoding="utf-8"))
+                    if isinstance(existing, dict) and isinstance(existing.get("envelope"), dict):
+                        Envelope.model_validate(existing["envelope"])
+                        completed += 1
+                        resumed += 1
+                        total_wall_ms = round(
+                            total_wall_ms + float(existing.get("wall_time_ms", 0.0)), 3
+                        )
+                        existing_calls = existing.get("calls") or {}
+                        for k in total_calls:
+                            total_calls[k] += int(existing_calls.get(k, 0))
+                        continue
+                except Exception:
+                    pass
+
             instrumented.reset_counts()
             start = perf_counter()
             envelope = pipeline.run(
@@ -395,6 +455,7 @@ def run_collection(
             for k in total_calls:
                 total_calls[k] += calls[k]
             completed += 1
+            executed += 1
 
             record = {
                 "run_id": run_id,
@@ -406,7 +467,6 @@ def run_collection(
                 "calls": calls,
                 "envelope": envelope.model_dump(mode="json"),
             }
-            out_file = envelopes_dir / f"{qid}__rep{rep}.json"
             out_file.write_text(
                 json.dumps(record, ensure_ascii=False, indent=2, allow_nan=False) + "\n",
                 encoding="utf-8",
@@ -414,6 +474,8 @@ def run_collection(
 
     manifest["summary"] = {
         "completed_runs": completed,
+        "executed_runs": executed,
+        "resumed_runs": resumed,
         "total_wall_time_ms": total_wall_ms,
         "total_calls": total_calls,
     }
@@ -462,6 +524,11 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--llm-model", help="Override opcional em memória para llm.model")
     parser.add_argument(
         "--embedding-model", help="Override opcional em memória para embeddings.model"
+    )
+    parser.add_argument(
+        "--resume",
+        action="store_true",
+        help="Pula (question_id, rep) cujo envelope JSON já exista e seja válido no diretório",
     )
     parser.add_argument(
         "--dry-run",

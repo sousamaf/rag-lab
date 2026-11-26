@@ -402,6 +402,228 @@ def test_instrumented_providers_and_manifest_secret_sanitization(services, tmp_p
     assert rodar.file_sha256(lf_file) == rodar.file_sha256(crlf_file)
 
 
+def test_t5_three_retrievers_jaccard_includes_embedding_and_t6_dash_and_t2_dual_replay():
+    # 1) T5 com 3 recuperadores (tfidf, bm25, embedding): jaccard_top12 é média dos 3 pares
+    # e jaccard_bm25_embedding mede especificamente bm25 vs embedding.
+    c_target = Chunk(
+        id="z_emb_target",
+        document_id="d6",
+        source="06_seg.md",
+        position=5,
+        text="Convertida em erro genérico 503 sem exibir URLs ou chaves de API.",
+    )
+    c_shared_lex = Chunk(id="01_lex", document_id="d1", source="01.md", position=1, text="Lex 1.")
+    c_shared_all = Chunk(id="02_all", document_id="d1", source="01.md", position=2, text="All.")
+    c_b1 = Chunk(id="10_b1", document_id="d2", source="02.md", position=1, text="B1.")
+    c_b2 = Chunk(id="11_b2", document_id="d2", source="02.md", position=2, text="B2.")
+    c_b3 = Chunk(id="12_b3", document_id="d2", source="02.md", position=3, text="B3.")
+    c_e2 = Chunk(id="20_e2", document_id="d3", source="03.md", position=1, text="E2.")
+
+    retrieval_3 = {
+        "tfidf": [
+            _make_evidence_dict(c_shared_lex, "tfidf", 0.8),
+            _make_evidence_dict(c_shared_all, "tfidf", 0.7),
+        ],
+        "bm25": [
+            _make_evidence_dict(c_b1, "bm25", 12.0),
+            _make_evidence_dict(c_b2, "bm25", 11.0),
+            _make_evidence_dict(c_b3, "bm25", 10.0),
+            _make_evidence_dict(c_shared_lex, "bm25", 9.0),
+            _make_evidence_dict(c_shared_all, "bm25", 8.0),
+        ],
+        "embedding": [
+            _make_evidence_dict(c_shared_all, "embedding", 0.90),
+            _make_evidence_dict(c_e2, "embedding", 0.85),
+            _make_evidence_dict(c_target, "embedding", 0.80),
+        ],
+    }
+    q_spec = {
+        "id": "S02",
+        "perfil": "semantica",
+        "responder": True,
+        "documentos_relevantes": ["06_seg.md"],
+        "trechos_relevantes": [
+            {
+                "fonte": "06_seg.md",
+                "trecho": "erro genérico 503 sem exibir URLs ou chaves de API",
+                "essencial": True,
+            }
+        ],
+    }
+
+    rep_3 = avaliar.replay_from_retrieval(retrieval_3, mode="hybrid", strategy="rrf", rrf_k=60)
+    env_3 = {
+        "retrieval": retrieval_3,
+        "evidence": rep_3["evidence_top_k"],
+        "attributes": {"hybrid": rep_3["telemetry"]},
+        "trace": [{"module": "hybrid", "status": "executed", "duration_ms": 1.0}],
+    }
+    tax_3 = avaliar.detect_fusion_tax_for_envelope(env_3, q_spec, config_name="e2_rrf_k60_todos")
+    assert tax_3 is not None
+    # Conjuntos de IDs:
+    # tfidf = {01_lex, 02_all} (2)
+    # bm25  = {10_b1, 11_b2, 12_b3, 01_lex, 02_all} (5)
+    # emb   = {02_all, 20_e2, z_emb_target} (3)
+    # J(tfidf, bm25) = 2/5 = 0.4; J(tfidf, emb) = 1/4 = 0.25; J(bm25, emb) = 1/7 ≈ 0.1429
+    expected_mean_jacc = round((2 / 5 + 1 / 4 + 1 / 7) / 3.0, 4)
+    assert tax_3["jaccard_top12"] == pytest.approx(expected_mean_jacc)
+    assert tax_3["jaccard_bm25_embedding"] == pytest.approx(round(1 / 7, 4))
+
+    # 2) T6 com E0 (apenas bm25) vs E1 (bm25 + embedding): pares ausentes e in_all em E0 -> "-"
+    rec_e0 = {
+        "run_id": "r_e0",
+        "config_name": "e0_bm25",
+        "question_id": "S02",
+        "perfil": "semantica",
+        "rep": 1,
+        "envelope": {"retrieval": {"bm25": retrieval_3["bm25"]}, "evidence": [], "attributes": {}},
+        "question_spec": q_spec,
+    }
+    rec_e2 = {
+        "run_id": "r_e2",
+        "config_name": "e2_bm25_emb",
+        "question_id": "S02",
+        "perfil": "semantica",
+        "rep": 1,
+        "envelope": {
+            "retrieval": {"bm25": retrieval_3["bm25"], "embedding": retrieval_3["embedding"]},
+            "evidence": [],
+            "attributes": {},
+        },
+        "question_spec": q_spec,
+    }
+    _, t6_rows = avaliar.generate_t6_sobreposicao_empates([rec_e0, rec_e2])
+    by_cfg_t6 = {(r["config"], r["perfil"]): r for r in t6_rows}
+    e0_row = by_cfg_t6[("e0_bm25", "TODOS")]
+    assert e0_row["jaccard_bm25_embedding"] == "-"
+    assert e0_row["jaccard_tfidf_bm25"] == "-"
+    assert e0_row["jaccard_tfidf_embedding"] == "-"
+    assert e0_row["in_all_media"] == "-"
+    assert e0_row["fused_count_media"] == pytest.approx(5.0)
+
+    e2_row = by_cfg_t6[("e2_bm25_emb", "TODOS")]
+    assert e2_row["jaccard_bm25_embedding"] == pytest.approx(round(1 / 7, 4))
+    assert e2_row["jaccard_tfidf_bm25"] == "-"
+    assert e2_row["jaccard_tfidf_embedding"] == "-"
+    assert e2_row["in_all_media"] == pytest.approx(1.0)
+
+    # 3) T2 com 3 recuperadores gera replay para tfidf+bm25+embedding e bm25+embedding
+    rec_3 = {
+        "run_id": "r_3",
+        "config_name": "e1_rr_todos",
+        "question_id": "S02",
+        "perfil": "semantica",
+        "rep": 1,
+        "envelope": env_3,
+        "question_spec": q_spec,
+    }
+    _, t2_rows = avaliar.generate_t2_curva_rrf_k_and_replay([rec_3])
+    rec_groups = {r["recuperadores"] for r in t2_rows if r["familia_replay"] == "E2_curva_rrf_k"}
+    assert "tfidf+bm25+embedding" in rec_groups
+    assert "bm25+embedding" in rec_groups
+
+
+def test_query_ollama_model_info_extracts_digest_from_api_tags_and_never_uses_architecture(
+    monkeypatch,
+):
+    from types import SimpleNamespace
+
+    def fake_get(url, timeout=3.0):
+        return SimpleNamespace(
+            status_code=200,
+            raise_for_status=lambda: None,
+            json=lambda: {
+                "models": [
+                    {
+                        "name": "nomic-embed-text:latest",
+                        "digest": "sha256:970aa74c0a90ef7482477cf803618e776f173c00752a7cd06",
+                        "modified_at": "2026-11-26T10:00:00Z",
+                        "details": {"family": "nomic-bert"},
+                    }
+                ]
+            },
+        )
+
+    def fake_post(url, json=None, timeout=3.0):
+        return SimpleNamespace(
+            status_code=200,
+            raise_for_status=lambda: None,
+            json=lambda: {
+                "model_info": {"general.architecture": "llama"},
+                "details": {"family": "llama"},
+            },
+        )
+
+    monkeypatch.setattr(rodar.httpx, "get", fake_get)
+    monkeypatch.setattr(rodar.httpx, "post", fake_post)
+
+    # Modelo sem sufixo ':latest' encontra 'nomic-embed-text:latest' em /api/tags e extrai sha256
+    info_found = rodar.query_ollama_model_info("http://localhost:11434", "nomic-embed-text")
+    assert info_found["digest"] == "sha256:970aa74c0a90ef7482477cf803618e776f173c00752a7cd06"
+    assert info_found["reason"] is None
+
+    # Modelo ausente em /api/tags retorna digest=None (nunca 'llama' de general.architecture)
+    info_missing = rodar.query_ollama_model_info("http://localhost:11434", "llama3.2:3b")
+    assert info_missing["digest"] is None
+    assert info_missing["digest"] != "llama"
+    assert info_missing["reason"] == "model_not_found_in_api_tags"
+
+
+def test_rodar_resume_skips_already_completed_envelopes(services, tmp_path):
+    run_out = tmp_path / "runs_resume"
+    config_path = REPO_ROOT / "experiments" / "g7" / "configs" / "e2_rrf_k60_bm25_emb.yaml"
+    gabarito_path = REPO_ROOT / "experiments" / "g7" / "perguntas_gabarito.yaml"
+    corpus_dir = REPO_ROOT / "experiments" / "g7" / "corpus"
+
+    # 1ª execução: roda L02 e S02
+    args_1 = rodar.build_parser().parse_args(
+        [
+            "--config",
+            str(config_path),
+            "--gabarito",
+            str(gabarito_path),
+            "--corpus-dir",
+            str(corpus_dir),
+            "--out-dir",
+            str(run_out),
+            "--run-id",
+            "run_resume_test",
+            "--ids",
+            "L02",
+            "S02",
+        ]
+    )
+    m1 = rodar.run_collection(args_1, services_override=services)
+    assert m1["summary"]["completed_runs"] == 2
+    assert m1["summary"]["executed_runs"] == 2
+    assert m1["summary"]["resumed_runs"] == 0
+
+    # 2ª execução com --resume e 3 perguntas (L02, S02, N01): pula L02 e S02 e executa só N01
+    args_2 = rodar.build_parser().parse_args(
+        [
+            "--config",
+            str(config_path),
+            "--gabarito",
+            str(gabarito_path),
+            "--corpus-dir",
+            str(corpus_dir),
+            "--out-dir",
+            str(run_out),
+            "--run-id",
+            "run_resume_test",
+            "--ids",
+            "L02",
+            "S02",
+            "N01",
+            "--resume",
+        ]
+    )
+    m2 = rodar.run_collection(args_2, services_override=services)
+    assert m2["summary"]["completed_runs"] == 3
+    assert m2["summary"]["executed_runs"] == 1
+    assert m2["summary"]["resumed_runs"] == 2
+
+
 def test_end_to_end_rodar_and_avaliar_generates_t1_to_t6_and_human_csv(services, tmp_path):
     run_out = tmp_path / "runs"
     eval_out = tmp_path / "results"

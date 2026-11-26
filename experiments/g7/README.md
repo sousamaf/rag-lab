@@ -69,5 +69,5 @@ Todas as configurações mantêm constantes: `top_k: 5`, `candidate_k: 12`, `max
 2. **Critério de Homologação:** Verificar se os `trechos_relevantes` são necessários e suficientes para sustentar os `fatos_esperados` e se nenhuma pergunta `sem_resposta` possui resposta acidental no corpus.
 3. **Congelamento do Hash SHA-256:** Após a revisão humana, atualizar `status_revisao` para `"homologado"` e registrar o hash SHA-256 de `perguntas_gabarito.yaml` no manifesto das execuções da Fase F10:
    ```powershell
-   .\.venv\Scripts\python.exe -c "import hashlib, pathlib; p = pathlib.Path('experiments/g7/perguntas_gabarito.yaml'); print(hashlib.sha256(p.read_bytes()).hexdigest())"
+   uv run --no-sync python -c "import hashlib, pathlib; p = pathlib.Path('experiments/g7/perguntas_gabarito.yaml'); print(hashlib.sha256(p.read_bytes().replace(b'\r\n', b'\n')).hexdigest())"
    ```

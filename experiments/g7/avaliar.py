@@ -41,6 +41,13 @@ ABSTENTION_PATTERNS: tuple[str, ...] = (
     "nao traz",
     "nao abord",
     "nao detalha",
+    "nao possui",
+    "nao suporta",
+    "nao utiliza",
+    "bloqueados na triagem",
+    "sem indice",
+    "nenhuma informacao",
+    "fora do escopo",
     "evidencias fornecidas nao",
     "fontes fornecidas nao",
     "documentos fornecidos nao",
@@ -603,11 +610,27 @@ def detect_fusion_tax_for_envelope(
 
     ret_names = list(retrieval.keys())
     if len(ret_names) >= 2:
-        s0 = {str(x["id"]) for x in retrieval[ret_names[0]]}
-        s1 = {str(x["id"]) for x in retrieval[ret_names[1]]}
-        jacc = jaccard_index(s0, s1)
+        pair_jaccards = [
+            jaccard_index(
+                {str(x["id"]) for x in retrieval[r_a]},
+                {str(x["id"]) for x in retrieval[r_b]},
+            )
+            for r_a, r_b in itertools.combinations(ret_names, 2)
+        ]
+        jacc = fmean(pair_jaccards)
     else:
         jacc = 0.0
+
+    if "bm25" in retrieval and "embedding" in retrieval:
+        jacc_bm25_emb: float | str = round(
+            jaccard_index(
+                {str(x["id"]) for x in retrieval["bm25"]},
+                {str(x["id"]) for x in retrieval["embedding"]},
+            ),
+            4,
+        )
+    else:
+        jacc_bm25_emb = "-"
 
     return {
         "config": config_name,
@@ -630,6 +653,7 @@ def detect_fusion_tax_for_envelope(
         "target_ranks_by_retriever": json.dumps(ranks_in_retrievers, ensure_ascii=False),
         "target_contributions": json.dumps(target_contribs, ensure_ascii=False),
         "jaccard_top12": round(jacc, 4),
+        "jaccard_bm25_embedding": jacc_bm25_emb,
     }
 
 
@@ -911,7 +935,14 @@ def generate_t2_curva_rrf_k_and_replay(
 
     base_records = [best_by_qid[qid] for qid in sorted(best_by_qid)]
     available_retrievers = tuple(base_records[0]["envelope"]["retrieval"].keys())
-    retrievers_label = "+".join(available_retrievers)
+
+    retriever_groups: list[tuple[str, ...]] = [available_retrievers]
+    if (
+        len(available_retrievers) >= 3
+        and "bm25" in available_retrievers
+        and "embedding" in available_retrievers
+    ):
+        retriever_groups.append(("bm25", "embedding"))
 
     rows: list[dict[str, Any]] = []
 
@@ -944,97 +975,106 @@ def generate_t2_curva_rrf_k_and_replay(
             }
         )
 
-    # 1) Varredura de rrf_k (E2)
-    for k_val in RRF_K_GRID:
-        evals: list[dict[str, Any]] = []
-        for rec in base_records:
-            env = rec["envelope"]
-            q_spec = rec["question_spec"]
-            text_by_id = build_text_lookup(env)
-            rep = replay_from_retrieval(
-                env["retrieval"], mode="hybrid", strategy="rrf", rrf_k=k_val, top_k=5
-            )
-            doc_m = compute_document_metrics(
-                rep["full_ranking"], q_spec.get("documentos_relevantes") or []
-            )
-            snp_m = compute_snippet_metrics(
-                rep["full_ranking"], q_spec.get("trechos_relevantes") or [], text_by_id
-            )
-            btie = 1.0 if (rep["telemetry"] or {}).get("boundary_tie") else 0.0
-            evals.append({**doc_m, **snp_m, "boundary_tie": btie})
-        _agg_replay(
-            "E2_curva_rrf_k",
-            f"rrf_k={k_val}",
-            k_val,
-            _rrf_regime_label(k_val),
-            retrievers_label,
-            evals,
-        )
+    for ret_group in retriever_groups:
+        retrievers_label = "+".join(ret_group)
 
-    # 2) Permutações de ordem do Round-Robin (E3)
-    for perm in itertools.permutations(available_retrievers):
-        evals = []
-        for rec in base_records:
-            env = rec["envelope"]
-            q_spec = rec["question_spec"]
-            text_by_id = build_text_lookup(env)
-            rep = replay_from_retrieval(
-                env["retrieval"], mode="round_robin", top_k=5, retriever_order=perm
+        # 1) Varredura de rrf_k (E2)
+        for k_val in RRF_K_GRID:
+            evals: list[dict[str, Any]] = []
+            for rec in base_records:
+                env = rec["envelope"]
+                q_spec = rec["question_spec"]
+                text_by_id = build_text_lookup(env)
+                rep = replay_from_retrieval(
+                    env["retrieval"],
+                    mode="hybrid",
+                    strategy="rrf",
+                    rrf_k=k_val,
+                    top_k=5,
+                    retriever_order=ret_group,
+                )
+                doc_m = compute_document_metrics(
+                    rep["full_ranking"], q_spec.get("documentos_relevantes") or []
+                )
+                snp_m = compute_snippet_metrics(
+                    rep["full_ranking"], q_spec.get("trechos_relevantes") or [], text_by_id
+                )
+                btie = 1.0 if (rep["telemetry"] or {}).get("boundary_tie") else 0.0
+                evals.append({**doc_m, **snp_m, "boundary_tie": btie})
+            _agg_replay(
+                "E2_curva_rrf_k",
+                f"rrf_k={k_val}",
+                k_val,
+                _rrf_regime_label(k_val),
+                retrievers_label,
+                evals,
             )
-            doc_m = compute_document_metrics(
-                rep["full_ranking"], q_spec.get("documentos_relevantes") or []
-            )
-            snp_m = compute_snippet_metrics(
-                rep["full_ranking"], q_spec.get("trechos_relevantes") or [], text_by_id
-            )
-            evals.append({**doc_m, **snp_m, "boundary_tie": 0.0})
-        perm_label = "->".join(perm)
-        _agg_replay(
-            "E3_permutacao_round_robin",
-            f"rr({perm_label})",
-            "-",
-            "sem_fusao_round_robin",
-            perm_label,
-            evals,
-        )
 
-    # 3) Comparação de estratégias de fusão no replay offline (E4)
-    w_emb2 = {r: (2.0 if r == "embedding" else 1.0) for r in available_retrievers}
-    for strat_name, strat_weights in (
-        ("rrf", {}),
-        ("weighted_rrf", w_emb2),
-        ("convex", {}),
-        ("dbsf", {}),
-    ):
-        evals = []
-        for rec in base_records:
-            env = rec["envelope"]
-            q_spec = rec["question_spec"]
-            text_by_id = build_text_lookup(env)
-            rep = replay_from_retrieval(
-                env["retrieval"],
-                mode="hybrid",
-                strategy=strat_name,
-                weights=strat_weights,
-                rrf_k=60,
-                top_k=5,
+        # 2) Permutações de ordem do Round-Robin (E3)
+        for perm in itertools.permutations(ret_group):
+            evals = []
+            for rec in base_records:
+                env = rec["envelope"]
+                q_spec = rec["question_spec"]
+                text_by_id = build_text_lookup(env)
+                rep = replay_from_retrieval(
+                    env["retrieval"], mode="round_robin", top_k=5, retriever_order=perm
+                )
+                doc_m = compute_document_metrics(
+                    rep["full_ranking"], q_spec.get("documentos_relevantes") or []
+                )
+                snp_m = compute_snippet_metrics(
+                    rep["full_ranking"], q_spec.get("trechos_relevantes") or [], text_by_id
+                )
+                evals.append({**doc_m, **snp_m, "boundary_tie": 0.0})
+            perm_label = "->".join(perm)
+            _agg_replay(
+                "E3_permutacao_round_robin",
+                f"rr({perm_label})",
+                "-",
+                "sem_fusao_round_robin",
+                perm_label,
+                evals,
             )
-            doc_m = compute_document_metrics(
-                rep["full_ranking"], q_spec.get("documentos_relevantes") or []
+
+        # 3) Comparação de estratégias de fusão no replay offline (E4)
+        w_emb2 = {r: (2.0 if r == "embedding" else 1.0) for r in ret_group}
+        for strat_name, strat_weights in (
+            ("rrf", {}),
+            ("weighted_rrf", w_emb2),
+            ("convex", {}),
+            ("dbsf", {}),
+        ):
+            evals = []
+            for rec in base_records:
+                env = rec["envelope"]
+                q_spec = rec["question_spec"]
+                text_by_id = build_text_lookup(env)
+                rep = replay_from_retrieval(
+                    env["retrieval"],
+                    mode="hybrid",
+                    strategy=strat_name,
+                    weights=strat_weights,
+                    rrf_k=60,
+                    top_k=5,
+                    retriever_order=ret_group,
+                )
+                doc_m = compute_document_metrics(
+                    rep["full_ranking"], q_spec.get("documentos_relevantes") or []
+                )
+                snp_m = compute_snippet_metrics(
+                    rep["full_ranking"], q_spec.get("trechos_relevantes") or [], text_by_id
+                )
+                btie = 1.0 if (rep["telemetry"] or {}).get("boundary_tie") else 0.0
+                evals.append({**doc_m, **snp_m, "boundary_tie": btie})
+            _agg_replay(
+                "E4_estrategias_fusao",
+                strat_name,
+                60 if "rrf" in strat_name else "-",
+                "estrategia_hibrida",
+                retrievers_label,
+                evals,
             )
-            snp_m = compute_snippet_metrics(
-                rep["full_ranking"], q_spec.get("trechos_relevantes") or [], text_by_id
-            )
-            btie = 1.0 if (rep["telemetry"] or {}).get("boundary_tie") else 0.0
-            evals.append({**doc_m, **snp_m, "boundary_tie": btie})
-        _agg_replay(
-            "E4_estrategias_fusao",
-            strat_name,
-            60 if "rrf" in strat_name else "-",
-            "estrategia_hibrida",
-            retrievers_label,
-            evals,
-        )
 
     return fieldnames, rows
 
@@ -1234,6 +1274,7 @@ def generate_t5_fusion_tax(
         "target_ranks_by_retriever",
         "target_contributions",
         "jaccard_top12",
+        "jaccard_bm25_embedding",
     ]
     rows: list[dict[str, Any]] = []
     for rec in records:
@@ -1270,18 +1311,19 @@ def generate_t6_sobreposicao_empates(
         sets = {
             r: {str(item["id"]) for item in (ret.get(r) or [])}
             for r in ("tfidf", "bm25", "embedding")
+            if r in ret and isinstance(ret.get(r), list)
         }
-        active_sets = [
-            {str(item["id"]) for item in r_list}
-            for r_list in ret.values()
-            if isinstance(r_list, list)
-        ]
+        active_sets = list(sets.values())
         if active_sets:
             union_all = set().union(*active_sets)
-            inter_all = set(active_sets[0]).intersection(*active_sets[1:])
+            inter_all: set[str] | None = (
+                set(active_sets[0]).intersection(*active_sets[1:])
+                if len(active_sets) >= 2
+                else None
+            )
         else:
             union_all = set()
-            inter_all = set()
+            inter_all = None
 
         attrs = env.get("attributes") or {}
         hyb = attrs.get("hybrid") if isinstance(attrs, dict) else None
@@ -1290,14 +1332,30 @@ def generate_t6_sobreposicao_empates(
         by_config.setdefault(rec["config_name"], []).append(
             {
                 "perfil": rec["perfil"],
-                "j_bm25_emb": jaccard_index(sets["bm25"], sets["embedding"]),
-                "j_tfidf_bm25": jaccard_index(sets["tfidf"], sets["bm25"]),
-                "j_tfidf_emb": jaccard_index(sets["tfidf"], sets["embedding"]),
-                "in_all": float(len(inter_all)),
+                "j_bm25_emb": (
+                    jaccard_index(sets["bm25"], sets["embedding"])
+                    if "bm25" in sets and "embedding" in sets
+                    else None
+                ),
+                "j_tfidf_bm25": (
+                    jaccard_index(sets["tfidf"], sets["bm25"])
+                    if "tfidf" in sets and "bm25" in sets
+                    else None
+                ),
+                "j_tfidf_emb": (
+                    jaccard_index(sets["tfidf"], sets["embedding"])
+                    if "tfidf" in sets and "embedding" in sets
+                    else None
+                ),
+                "in_all": float(len(inter_all)) if inter_all is not None else None,
                 "fused_count": float(len(union_all)),
                 "btie": 1.0 if btie else 0.0,
             }
         )
+
+    def _mean_or_dash(items_subset: list[dict[str, Any]], key: str, digits: int = 4) -> float | str:
+        vals = [float(x[key]) for x in items_subset if x[key] is not None]
+        return round(fmean(vals), digits) if vals else "-"
 
     rows: list[dict[str, Any]] = []
     for cfg in sorted(by_config):
@@ -1315,10 +1373,10 @@ def generate_t6_sobreposicao_empates(
                     "config": cfg,
                     "perfil": perfil_filter,
                     "n_consultas": len(subset),
-                    "jaccard_bm25_embedding": round(fmean(x["j_bm25_emb"] for x in subset), 4),
-                    "jaccard_tfidf_bm25": round(fmean(x["j_tfidf_bm25"] for x in subset), 4),
-                    "jaccard_tfidf_embedding": round(fmean(x["j_tfidf_emb"] for x in subset), 4),
-                    "in_all_media": round(fmean(x["in_all"] for x in subset), 3),
+                    "jaccard_bm25_embedding": _mean_or_dash(subset, "j_bm25_emb", 4),
+                    "jaccard_tfidf_bm25": _mean_or_dash(subset, "j_tfidf_bm25", 4),
+                    "jaccard_tfidf_embedding": _mean_or_dash(subset, "j_tfidf_emb", 4),
+                    "in_all_media": _mean_or_dash(subset, "in_all", 3),
                     "fused_count_media": round(fmean(x["fused_count"] for x in subset), 3),
                     "boundary_tie_count": int(sum(x["btie"] for x in subset)),
                     "boundary_tie_rate": round(fmean(x["btie"] for x in subset), 4),
