@@ -12,28 +12,44 @@
 |---|---|
 | **Grupo** | **G7 — Hybrid** |
 | **Integrantes** | Diego · Gabriel Alves · João Victor Póvoa |
-| **Repositório / Branch** | `rag-lab` · branch `feat/g7-hybrid` (criada a partir de `develop`, commit base `e230073`) |
-| **Módulo principal** | `src/rag_lab/modules/hybrid.py` (com contrato YAML estendido em `src/rag_lab/config.py`) |
+| **Repositório / Branch** | `rag-lab` · branch completa `feat/g7-hybrid` (rebased sobre `upstream/develop` `923cd03`, base original `e230073`) + branch de arquivo único `g7-hybrid` |
+| **Módulo principal** | `src/rag_lab/modules/hybrid.py` (com contrato YAML estendido em `src/rag_lab/config.py` e fallback autocontido em `attributes.hybrid_config`) |
 | **Missão oficial (`docs/missoes.md`)** | Comparar seleção básica *round-robin* (`select_without_fusion`) e **Reciprocal Rank Fusion (RRF)** variando `rrf_k`, entregando código sólido, comparação controlada e análise honesta das limitações da técnica |
 | **Ambição técnica do G7** | Evoluir `hybrid.py` com arquitetura *Strategy* retrocompatível via YAML (`rrf`, `weighted_rrf`, `convex`, `dbsf`), precisão numérica (`math.fsum`), proteção *NaN-free*, telemetria diagnóstica em `payload["attributes"]["hybrid"]` e suíte de avaliação experimental com *replay* offline exato |
 | **Diagramas de referência** | [Fluxo didático](diagrams/rag-didatico.svg) · [Mapa dos módulos e grupos](diagrams/rag-modulos.svg) · [Pipeline modular](diagrams/rag-pipeline.svg) |
 
 ### 1.2 Painel de Progresso das Fases (F0 a F11)
 
-| Fase | Status | Arquivos-alvo | Critério de pronto | Data / Checkpoint |
-|---|---|---|---|---|
-| **F0** | `[x] Concluída` | Ambiente `.venv` (`uv 0.13.9`, CPython `3.12.16`), branch `feat/g7-hybrid` | `uv sync --frozen --extra dev --python 3.12`, `rag-lab validate`, `rag-lab doctor --offline`, `ruff check .` e `pytest` verdes sem editar arquivos | 2026-11-18 · Base `e230073` validada (31/31 testes unitários verdes no sandbox) |
-| **F1** | `[x] Concluída` | `tests/test_hybrid.py` (novo) | Testes de caracterização do RRF clássico, variação de `rrf_k`, limiar de dominância $C=12$, não-truncagem, imutabilidade de `retrieval` e viés do *round-robin* passando contra o código original | 2026-11-18 · `9 passed` contra `hybrid.py` original + `ruff` limpo |
-| **F2** | `[x] Concluída` | `src/rag_lab/config.py`, `tests/test_config.py` | `HybridConfig` opcional na raiz do YAML mantendo `config/lab.yaml` intocado; validação estrita de `strategy` e `weights`; testes de contrato verdes | 2026-11-18 · `55 passed, 1 skipped` + `validate` e `ruff` limpos |
-| **F3** | `[x] Concluída` | `src/rag_lab/modules/hybrid.py`, `tests/test_hybrid.py` | Núcleo *Strategy* + `rrf` com `math.fsum` + telemetria `attributes.hybrid` + validação *NaN-free*; teste legado em `tests/test_modules.py` intacto e verde | 2026-11-18 · `STRATEGIES`, `_score_rrf`, `_resolve_weights`, `_extract_raw_scores` e telemetria `g7-hybrid/1` verificados |
-| **F4** | `[x] Concluída` | `src/rag_lab/modules/hybrid.py`, `tests/test_hybrid.py` | Estratégia `weighted_rrf` implementada; equivalência com pesos unitários, inversão de vencedor por peso e peso zero sem truncagem testados | 2026-11-18 · `_score_weighted_rrf` e validação em runtime contra `payload["retrieval"]` verificados |
-| **F5** | `[x] Concluída` | `src/rag_lab/modules/hybrid.py`, `tests/test_hybrid.py` | Estratégia `convex` (Min-Max normalizado por $\sum w_j$) implementada; invariância a escala, sensibilidade a *outlier* e casos degenerados ($\max = \min$, 1 item) testados | 2026-11-18 · `_score_convex` com denominador $W$ sobre todas as chaves de `retrieval` verificado |
-| **F6** | `[x] Concluída` | `src/rag_lab/modules/hybrid.py`, `tests/test_hybrid.py` | Estratégia `dbsf` ($\mu \pm 3\sigma$ com *clip* $[0, 1]$ normalizado por $\sum w_j$) implementada; $\sigma = 0$, *clip* em $n=12$ e soma exata `fsum(contributions) == fused` testados | 2026-11-18 · `_score_dbsf` e round-trip JSON estrito nas 4 estratégias verificados (`37 passed` em `test_hybrid`+`test_modules`) |
-| **F7** | `[x] Concluída` | `tests/test_pipeline.py` | Testes de composição ponta-a-ponta no `Pipeline` para todas as estratégias, bypass do `hybrid` e preservação do envelope JSON | 2026-11-18 · `83 passed, 1 skipped in 2.03s` + `ruff` e `validate` limpos |
-| **F8** | `[x] Concluída` | `experiments/g7/{corpus/,perguntas_gabarito.yaml,configs/*.yaml,README.md}` | Corpus autorizado (12 `.md`, 135 chunks), 24 perguntas (4 perfis), 35/35 trechos validados em chunk único, 13 YAMLs validados via `rag-lab validate` e hash SHA-256 inicial calculado | 2026-11-18 · 12 docs + 24 perguntas + 13 configs validados (`EXIT=0`) |
-| **F9** | `[ ] Pendente` | `experiments/g7/{rodar.py,avaliar.py}`, `tests/test_g7_avaliacao.py` | Coletor online + avaliador com *replay* offline exato, tabelas T1–T6 e testes unitários das métricas; equivalência replay == online verificada em piloto | Aguardando início |
-| **F10** | `[ ] Pendente` | `compose.override.yaml` (local, não versionado), `data/results/g7/` | Banco dedicado `rag_g7` via Docker (`127.0.0.1:5432`), ingestão única com embeddings e execução da matriz E0–E6 com manifestos completos | Aguardando F9 |
-| **F11** | `[ ] Pendente` | `docs/g7-hybrid.md`, `experiments/g7/results/` | Relatório técnico final com tabelas, casos de *Fusion Tax*, limitações e recomendação; suíte completa (incluindo `test_api.py` e integração) verde; PR `feat/g7-hybrid` -> `develop` | Aguardando F10 |
+```text
+Progresso Global da Missão G7 (F0 a F11): [###################-----] ~74% (8,9 / 12 fases)
+  [x] F0  Setup & Baseline            100%  [####################]
+  [x] F1  Testes de Caracterização    100%  [####################]
+  [x] F2  Contrato YAML HybridConfig  100%  [####################]
+  [x] F3  Núcleo Strategy + RRF/fsum  100%  [####################]
+  [x] F4  Estratégia Weighted RRF     100%  [####################]
+  [x] F5  Estratégia Convex Min-Max   100%  [####################]
+  [x] F6  Estratégia DBSF (mu+-3sig)  100%  [####################]
+  [x] F7  Composição Pipeline + Sync  100%  [####################]
+  [~] F8  Corpus, Gabarito & Piloto    90%  [##################--] (falta revisão humana + freeze SHA-256)
+  [ ] F9  Ferramental rodar/avaliar     0%  [--------------------]
+  [ ] F10 Execução Matriz E0-E6         0%  [--------------------]
+  [ ] F11 Avaliação Humana, Doc & PR    0%  [--------------------]
+```
+
+| Fase | Status | Progresso | Arquivos-alvo | Critério de pronto | Bloqueios / Próxima Ação | Data / Checkpoint |
+|---|---|---|---|-|---|---|
+| **F0** | `[x] Concluída` | `100%` | Ambiente `.venv` (`uv 0.13.9`, CPython `3.12.16`), branch `feat/g7-hybrid` | `uv sync --frozen --extra dev --python 3.12`, `rag-lab validate`, `rag-lab doctor --offline`, `ruff check .` e `pytest` verdes sem editar arquivos | Nenhum (concluída) | 2026-11-18 · Base `e230073` validada (31/31 testes unitários verdes no sandbox) |
+| **F1** | `[x] Concluída` | `100%` | `tests/test_hybrid.py` (novo) | Testes de caracterização do RRF clássico, variação de `rrf_k`, limiar de dominância $C=12$, não-truncagem, imutabilidade de `retrieval` e viés do *round-robin* passando contra o código original | Nenhum (concluída) | 2026-11-18 · `9 passed` contra `hybrid.py` original + `ruff` limpo |
+| **F2** | `[x] Concluída` | `100%` | `src/rag_lab/config.py`, `tests/test_config.py` | `HybridConfig` opcional na raiz do YAML mantendo `config/lab.yaml` intocado; validação estrita de `strategy` e `weights`; testes de contrato verdes | Nenhum (sincronizada com `tagging_method` de `upstream/develop` `923cd03`) | 2026-11-18 / 2026-11-26 · `55 passed, 1 skipped` + rebase `923cd03` limpo |
+| **F3** | `[x] Concluída` | `100%` | `src/rag_lab/modules/hybrid.py`, `tests/test_hybrid.py` | Núcleo *Strategy* + `rrf` com `math.fsum` + telemetria `attributes.hybrid` + validação *NaN-free*; teste legado em `tests/test_modules.py` intacto e verde | Nenhum (concluída e auditada) | 2026-11-18 · `STRATEGIES`, `_score_rrf`, `_resolve_weights`, `_extract_raw_scores` e telemetria `g7-hybrid/1` verificados |
+| **F4** | `[x] Concluída` | `100%` | `src/rag_lab/modules/hybrid.py`, `tests/test_hybrid.py` | Estratégia `weighted_rrf` implementada; equivalência com pesos unitários, inversão de vencedor por peso e peso zero sem truncagem testados | Nenhum (concluída e auditada) | 2026-11-18 · `_score_weighted_rrf` e validação em runtime contra `payload["retrieval"]` verificados |
+| **F5** | `[x] Concluída` | `100%` | `src/rag_lab/modules/hybrid.py`, `tests/test_hybrid.py` | Estratégia `convex` (Min-Max normalizado por $\sum w_j$) implementada; invariância a escala, sensibilidade a *outlier* e casos degenerados ($\max = \min$, 1 item) testados | Nenhum (concluída e auditada) | 2026-11-18 · `_score_convex` com denominador $W$ sobre todas as chaves de `retrieval` verificado |
+| **F6** | `[x] Concluída` | `100%` | `src/rag_lab/modules/hybrid.py`, `tests/test_hybrid.py` | Estratégia `dbsf` ($\mu \pm 3\sigma$ com *clip* $[0, 1]$ normalizado por $\sum w_j$) implementada; $\sigma = 0$, *clip* em $n=12$ e soma exata `fsum(contributions) == fused` testados | Nenhum (unificada com `_resolve_hybrid_config` e 39 testes em `test_hybrid.py`) | 2026-11-18 / 2026-11-26 · `_score_dbsf`, `_resolve_hybrid_config` e invariância de escala no desempate verificados |
+| **F7** | `[x] Concluída` | `100%` | `tests/test_pipeline.py` | Testes de composição ponta-a-ponta no `Pipeline` para todas as estratégias, bypass do `hybrid`, preservação de `metadata["tags"]` e do envelope JSON | Nenhum (concluída; suíte total com `121 passed, 2 skipped`) | 2026-11-18 / 2026-11-26 · `121 passed, 2 skipped` após rebase sobre `upstream/develop` `923cd03` |
+| **F8** | `[~] Quase concluída` | `90%` | `experiments/g7/{corpus/,perguntas_gabarito.yaml,configs/*.yaml,README.md}` | Corpus autorizado (12 `.md`, 135 chunks), 24 perguntas (4 perfis), 35/35 trechos validados em chunk único, 13 YAMLs validados via `rag-lab validate` e piloto ao vivo (`L02` e `S02`) validado no Docker/Ollama | Pendente revisão humana cruzada de Diego e Gabriel Alves em `perguntas_gabarito.yaml` (`status_revisao: validado`) e congelamento do SHA-256 final | 2026-11-18 / 2026-11-26 · 12 docs + 24 perguntas + 13 configs + 10 envelopes de piloto ao vivo validados |
+| **F9** | `[ ] Pendente` | `0%` | `experiments/g7/{rodar.py,avaliar.py}`, `tests/test_g7_avaliacao.py` | Coletor online + avaliador com *replay* offline exato, tabelas T1–T6, planilha de avaliação humana e testes unitários das métricas; equivalência replay == online verificada | Próxima fase de implementação (Commit B) logo após o Commit A | Aguardando início da F9 |
+| **F10** | `[ ] Pendente` | `0%` | `compose.override.yaml` (local, não versionado), `data/results/g7/` | Banco dedicado `rag_g7` via Docker (`127.0.0.1:5432`), ingestão única com embeddings e execução oficial da matriz E0–E6 com `manifest.json` completos | Definir par oficial de modelos (`llama3.2:3b` + `embeddinggemma:300m` ou `lfm3:1.7b-q4_K_M` + `nomic-embed-text:latest`) e concluir F9 + revisão humana da F8 | Aguardando F9 e homologação do gabarito |
+| **F11** | `[ ] Pendente` | `0%` | `docs/g7-hybrid.md`, `experiments/g7/results/` | Avaliação humana (rubrica 0–2 de fidelidade/citações), relatório técnico final `docs/g7-hybrid.md` com tabelas T1–T6 e casos de *Fusion Tax*, suíte completa (`test_api.py`, `-m integration`, `npm run docs:check`) e PR | Depende dos resultados coletados na F10 | Aguardando F10 |
 
 ---
 
@@ -1004,6 +1020,135 @@ modules:
   SHA-256 inicial de perguntas_gabarito.yaml: 046841378bc39d6dd95fd2edefe37f3d91161afed85802925d6e932c68762e32
   ```
 
+### 5.7 Auditoria Algorítmica, Sincronização com `upstream/develop` e Piloto Ao Vivo (Docker + Ollama)
+
+#### 5.7.1 Sincronização com `upstream/develop` (`923cd03`) e Estratégia das Duas Branches
+
+- **Novidades incorporadas do repositório oficial do professor (`upstream/develop`, commit `923cd03`):**
+  1. **Classificador de rótulos na ingestão (`tagging_method` e `src/rag_lab/tagging.py`):** `Settings` passa a declarar `tagging_method: TaggingMethod = "llm"` (`Literal["llm", "terms"]`) com preenchimento padrão `TAGGING_METHOD_ENV = "${RAG_TAG_CLASSIFIER:-llm}"` em `load_settings()`. Durante a ingestão, cada chunk recebe `metadata["tags"]` a partir do catálogo `config/tags-si.yaml`.
+  2. **Atualização do modelo de embeddings em `config/lab.yaml`:** o arquivo principal do laboratório (`config/lab.yaml`, mantido 100% intocado pelo G7) passou a referenciar `embeddinggemma:300m` (`dimensions: 768`) e `tagging_method: ${RAG_TAG_CLASSIFIER:-llm}`.
+  3. **Novos testes oficiais:** `tests/test_tagging.py`, `tests/test_cli.py` e `tests/test_pipeline.py::test_tags_follow_chunk_id_through_fusion_and_context_steps[False|True]`.
+- **Resolução limpa no rebase de `feat/g7-hybrid` sobre `upstream/develop` (`923cd03`):**
+  - Em `src/rag_lab/config.py`, preservamos integralmente `TaggingMethod` e `TAGGING_METHOD_ENV` ao lado de `RETRIEVER_NAMES`, `RetrieverName`, `FusionStrategy`, `Weight` e `hybrid: HybridConfig = Field(default_factory=HybridConfig)`.
+  - Em `tests/test_config.py`, como o fixture `config_data` lê `config/lab.yaml` via `yaml.safe_load` sem expandir `${RAG_TAG_CLASSIFIER:-llm}`, definimos explicitamente `config_data["tagging_method"] = "llm"` nos testes diretos de `Settings.model_validate` do G7 (`test_hybrid_config_defaults_and_valid_strategies` e `test_invalid_hybrid_config_rejected`), garantindo que a validação exercite genuinamente `HybridConfig`.
+  - Todos os 13 YAMLs em `experiments/g7/configs/*.yaml` continuam 100% válidos sem necessidade de edição (`load_settings` injeta `tagging_method` automaticamente via `setdefault`).
+- **Estratégia das duas branches e unificação de `_resolve_hybrid_config`:**
+  - **`g7-hybrid` (Trilha A — entrega de arquivo único):** modifica exclusivamente `src/rag_lab/modules/hybrid.py` sobre `upstream/develop` (`923cd03`), sem depender de símbolos novos em `config.py`.
+  - **`feat/g7-hybrid` (Trilha B — projeto completo F0–F11):** contém `HybridConfig` em `config.py`, a suíte completa de testes, o pacote experimental `experiments/g7/` e este documento vivo.
+  - **Unificação do código de `src/rag_lab/modules/hybrid.py` entre ambas as branches:** `hybrid.py` agora é idêntico nas duas branches gracias ao resolvedor em três níveis `_resolve_hybrid_config(payload, settings)`:
+    1. **Prioridade 1 (`settings.hybrid`):** se `getattr(settings, "hybrid", None)` existir (caso de `feat/g7-hybrid`), utiliza `settings.hybrid.strategy` e `settings.hybrid.weights`.
+    2. **Prioridade 2 (`payload["attributes"]["hybrid_config"]`):** se `settings` não possuir `.hybrid` (caso de `upstream/develop` puro na branch `g7-hybrid` ou em stubs de teste), lê e valida estritamente `payload["attributes"]["hybrid_config"]` (`strategy` e `weights` com $0 \le w \le 100$, rejeitando `bool`, `NaN`/`Inf` e chaves desconhecidas).
+    3. **Prioridade 3 (Padrão):** retorna `("rrf", {})`.
+
+```python
+def _resolve_hybrid_config(payload: dict, settings: Any) -> tuple[str, dict[str, Any]]:
+    hybrid_cfg = getattr(settings, "hybrid", None)
+    if hybrid_cfg is not None:
+        return hybrid_cfg.strategy, hybrid_cfg.weights
+
+    attributes = payload.get("attributes")
+    if not isinstance(attributes, dict) or "hybrid_config" not in attributes:
+        return "rrf", {}
+
+    raw_cfg = attributes["hybrid_config"]
+    if not isinstance(raw_cfg, dict):
+        raise ValueError("attributes.hybrid_config deve ser um dicionário.")
+    unknown_keys = set(raw_cfg) - {"strategy", "weights"}
+    if unknown_keys:
+        raise ValueError(
+            f"Opções desconhecidas em attributes.hybrid_config: {', '.join(sorted(unknown_keys))}"
+        )
+
+    strategy = raw_cfg.get("strategy", "rrf")
+    if not isinstance(strategy, str) or strategy not in STRATEGIES:
+        raise ValueError(f"Estratégia híbrida desconhecida: {strategy}")
+
+    raw_weights = raw_cfg.get("weights", {})
+    if not isinstance(raw_weights, dict):
+        raise ValueError("attributes.hybrid_config.weights deve ser um dicionário.")
+    weights: dict[str, float] = {}
+    for retriever, weight in raw_weights.items():
+        if not isinstance(retriever, str) or not retriever:
+            raise ValueError("Nome de recuperador inválido em attributes.hybrid_config.weights.")
+        if (
+            isinstance(weight, bool)
+            or not isinstance(weight, (int, float))
+            or not math.isfinite(weight)
+            or not 0 <= weight <= 100
+        ):
+            raise ValueError(f"Peso inválido para o recuperador '{retriever}'.")
+        weights[retriever] = float(weight)
+    return strategy, weights
+```
+
+#### 5.7.2 Auditoria Algorítmica de `src/rag_lab/modules/hybrid.py`: Invariância de Escala no Desempate e `boundary_tie`
+
+Durante a análise inicial do piloto ao vivo (`S02__rrf60.json`), surgiu a questão: por que, no empate de RRF em $\frac{1}{60 + 3} = \frac{1}{63} \approx 0{,}01587302$ entre o 3º colocado exclusivo do `bm25` (`07_backup_recuperacao.md`, pos 7, score bruto `9.9271`) e o 3º colocado exclusivo do `embedding` (`06_seguranca_criptografia.md`, pos 5, score bruto `0.6865`), o candidato do `bm25` ficou em `fused_rank = 6` e o gabarito do `embedding` ficou em `fused_rank = 7`?
+
+1. **Verificação da chave de ordenação em `src/rag_lab/modules/hybrid.py` (linha 213):**
+   ```python
+   ordered = sorted(merged.values(), key=lambda e: (-e["score"], e["id"]))
+   ```
+   - **Diagnóstico:** **Não havia bug no código de `hybrid.py`** (houve apenas uma interpretação equivocada na prosa do relatório preliminar). O módulo `Hybrid` **nunca** comparou `raw_score` bruto nem `best_rank` para desempatar candidatos.
+   - **Por que comparar `raw_score` entre recuperadores heterogêneos seria um erro matemático grave:** o `bm25` produz scores ilimitados em $(0, +\infty)$ (tipicamente `5.0` a `35.0+`), enquanto `tfidf` e `embedding` operam com similaridade de cosseno limitada a $\le 1{,}0$. Qualquer critério de desempate que utilizasse `max(raw_score)` introduziria um viés sistemático de 100% a favor do `bm25` em todos os empates de posição $(r_{\text{bm25}} = r_{\text{emb}})$ do RRF, destruindo a propriedade fundamental de invariância de escala do RRF.
+2. **Prova empírica com os `chunk_id` SHA-256 reais de `data/results/teste_ao_vivo/S02__rrf60.json`:**
+   - Em `S02__rrf60.json`, ocorreram quatro pares de empate exato entre candidatos exclusivos (`m = 1`) na mesma posição $r \in \{2, 3, 5, 6\}$:
+
+| Posição $r$ na lista de origem | Score RRF (`1 / (60 + r)`) | Candidato `bm25` (`id` prefixo 12 hex, `raw_score`) | Candidato `embedding` (`id` prefixo 12 hex, `raw_score`) | Vencedor do desempate `(-score, id)` | `fused_rank` resultante |
+| :---: | :---: | :--- | :--- | :--- | :---: |
+| **$r = 2$** | `1/62 = 0.01612903` | `2387f9009d87...` (`11_deploy` pos 2, `10.1456`) | `86cf26a2359e...` (`10_slas` pos 0, `0.7082`) | `"2387..." < "86cf..."` (`bm25`) | `#4` vs. `#5` *(ambos no Top-5)* |
+| **$r = 3$** | `1/63 = 0.01587302` | `54833391d69b...` (`07_backup` pos 7, `9.9271`) | `e59f8e132b52...` (`06_seguranca` pos 5, `0.6865`) **[ALVO]** | `"5483..." < "e59f..."` (`bm25`) | `#6` vs. `#7` *(ambos fora do Top-5)* |
+| **$r = 5$** | `1/65 = 0.01538462` | `df6be78ee17c...` (`09_observabilidade` pos 3, `8.9502`) | `909b83e155a1...` (`06_seguranca` pos 2, `0.6790`) | **`"909b..." < "df6b..."` (`embedding`)** | **`#9` (`emb`) vs. `#10` (`bm25`)** |
+| **$r = 6$** | `1/66 = 0.01515152` | `424a91ce6ffb...` (`06_seguranca` pos 10, `8.5358`) | `107492924e6b...` (`06_seguranca` pos 0, `0.6720`) | **`"1074..." < "424a..."` (`embedding`)** | **`#11` (`emb`) vs. `#12` (`bm25`)** |
+
+   - Como demonstram os pares $r = 5$ e $r = 6$, o candidato do `embedding` (com score bruto `~0.67`) venceu o candidato do `bm25` (com score bruto `~8.5–8.9`) sempre que seu hash SHA-256 foi lexicograficamente menor. Além disso, em $r = 3$, ambos os candidatos empatados (`#6` e `#7`) já estavam fora do corte `top_k = 5`, pois as 5 primeiras vagas foram ocupadas pelos 2 itens de consenso (`#1` e `#2`), pelo `#1` do `bm25` (`#3`) e pelos dois empatados em $r = 2$ (`#4` e `#5`).
+3. **Auditoria de `boundary_tie` na fronteira `top_k` (linhas 232–237 de `hybrid.py`):**
+   ```python
+   boundary_tie = len(ordered) > top_k and math.isclose(
+       ordered[top_k - 1]["score"],
+       ordered[top_k]["score"],
+       rel_tol=1e-12,
+       abs_tol=1e-12,
+   )
+   ```
+   - `boundary_tie` compara especificamente o último item **incluído** no contexto (`ordered[top_k - 1]`, posição `top_k` 1-based) com o primeiro item **excluído** do contexto (`ordered[top_k]`, posição `top_k + 1` 1-based).
+   - Em `S02__rrf60.json` com `top_k = 5`, `ordered[4]` (`fused_rank = 5`) tem score $\frac{1}{62} \approx 0{,}01612903$ e `ordered[5]` (`fused_rank = 6`) tem score $\frac{1}{63} \approx 0{,}01587302$ (diferença $0{,}000256 > 10^{-12}$), razão pela qual `boundary_tie` é `false` em `top_k = 5` (os empates ocorreram nas fronteiras `4|5` e `6|7`, e não na fronteira de corte `5|6`). Se `top_k` fosse `4` ou `6`, `boundary_tie` seria `true`.
+4. **Novos testes de regressão adicionados em `tests/test_hybrid.py` (elevando a suíte para 19 funções / 39 casos parametrizados):**
+   - `test_rrf_tie_breaking_is_strictly_scale_invariant_by_chunk_id`: comprova que um chunk exclusivo do `embedding` em rank 3 (`score = 0.68`, `id = "a_emb_rank3"`) vence o desempate em $1/63$ contra um chunk exclusivo do `bm25` em rank 3 (`score = 30.0`, `id = "z_bm25_rank3"`).
+   - `test_hybrid_preserves_metadata_tags_across_all_strategies`: parametrizado nas 4 estratégias (`rrf`, `weighted_rrf`, `convex`, `dbsf`), comprova que `metadata["tags"]` sobrevive intacto à fusão.
+   - `test_hybrid_config_attribute_fallback_precedence_and_validation`: comprova a precedência `settings.hybrid > attributes["hybrid_config"] > ("rrf", {})` e a rejeição com `ValueError` de 9 formatos inválidos em `attributes["hybrid_config"]`.
+   - `test_boundary_tie_true_and_false_at_top_k_cutoff`: reproduz a geometria exata de `S02`, provando `boundary_tie == False` para `top_k = 5` e `boundary_tie == True` para `top_k = 4` e `top_k = 6`.
+
+#### 5.7.3 Registro do Piloto Ao Vivo no Docker Compose + Ollama (`L02` e `S02` nos 5 Modos)
+
+- **Ambiente de execução do piloto (`data/results/teste_ao_vivo/`):**
+  - Containers Docker Compose: `rag-lab-postgres-1` (`PostgreSQL 16; pgvector 0.8.7`, `Healthy`) e `rag-lab-app-1` (`Python 3.12.16`, `Healthy`).
+  - Modelos Ollama locais validados via `rag-lab doctor`: `llm.model = lfm3:1.7b-q4_K_M` (`temperature: 0.0`) e `embeddings.model = nomic-embed-text:latest` (`dimensions: 768`).
+  - Ingestão do corpus "Plataforma Núcleo Aurora" (`RAG_TAG_CLASSIFIER=terms`): **12 documentos `.md`** e **135 chunks** indexados em **~28 segundos**.
+- **Tabela Resumo — Pergunta Literal `L02` (`ERR-AUR-417`, alvo: `03_banco_vetorial_indexacao.md` pos 4):**
+  - Recuperadores isolados (`candidate_k = 12`): `bm25` trouxe o alvo em **#1** com *outlier* extremo (`score = 31.0986` vs. `15.0719` do 2º colocado; `raw_mean = 10.9018, raw_std = 6.8623`); `embedding` também trouxe o alvo em **#1** (`score = 0.8491`). Sobreposição: `19` candidatos únicos, `in_all = 5` (Jaccard $= 5/19 = 0{,}2632$).
+
+| Modo | `#1` (`[1]`) | `#2` (`[2]`) | `#3` (`[3]`) | `#4` (`[4]`) | `#5` (`[5]`) | Rank do Alvo | Fenômeno Experimental Observado |
+| :--- | :--- | :--- | :--- | :--- | :--- | :---: | :--- |
+| **`bypass_rr`** (`hybrid: false`) | **`03_banco (pos 4)`** (`31.0986`) | `03_banco (pos 1)` (`15.0719`) | `01_arquitetura (pos 11)` (`0.7580`, *só emb*) | `04_filas (pos 4)` (`14.4746`, *só bm25*) | `04_filas (pos 6)` (`0.7219`) | **`#1`** | Mistura escalas brutas (`31.09` vs. `0.75`) e promove itens sem consenso a `[3]` e `[4]` |
+| **`rrf60`** ($k=60$, 1:1) | **`03_banco (pos 4)`** (`0.032787`) | `03_banco (pos 1)` (`0.031754`) | `04_filas (pos 6)` (`0.030366`) | `05_faturamento (pos 4)` (`0.030331`) | `03_banco (pos 5)` (`0.029670`) | **`#1`** | Teorema $k=60 > 10$: os 5 itens de consenso (`in_all: 5`) ocupam 100% do Top-5 |
+| **`weighted_rrf`** (`1:2`) | **`03_banco (pos 4)`** (`0.049180`) | `03_banco (pos 1)` (`0.047379`) | `04_filas (pos 6)` (`0.046239`) | **`03_banco (pos 5)`** (`0.045055`) | `05_faturamento (pos 4)` (`0.045037`) | **`#1`** | Peso `2.0` no `embedding` promove `03_banco (pos 5)` acima do distrator `ERR-AUR-429` |
+| **`convex`** (Min-Max, 1:1) | **`03_banco (pos 4)`** (`1.000000`) | `03_banco (pos 1)` (`0.336586`) | **`01_arquitetura (pos 11)`** (`0.252403`, *só emb*) | `05_faturamento (pos 4)` (`0.200304`) | `04_filas (pos 6)` (`0.183309`) | **`#1`** | **Achatamento por *outlier* no Min-Max:** `31.0986` esmaga o restante do BM25 e deixa `emb#2` isolado saltar para `[3]` |
+| **`dbsf`** ($\mu \pm 3\sigma$, 1:1) | **`03_banco (pos 4)`** (`0.981098`) | `03_banco (pos 1)` (`0.571674`) | `05_faturamento (pos 4)` (`0.487403`) | `04_filas (pos 6)` (`0.477470`) | `03_banco (pos 5)` (`0.451225`) | **`#1`** | Resiste ao *outlier* do BM25 e mantém todos os 5 itens de consenso no Top-5 graças ao bônus de presença |
+
+- **Tabela Resumo — Pergunta Semântica `S02` (sanitização HTTP 503 na borda, alvo: `06_seguranca_criptografia.md` pos 5):**
+  - Recuperadores isolados (`candidate_k = 12`): `bm25` **não encontrou o alvo** (`Target rank: None`, atraído por distratores lexicais de `"endereço"`, `"servidor web"` e `"comunicação"`); `embedding` encontrou o alvo em **#3** (`score = 0.6865`). Sobreposição: `22` candidatos únicos, apenas `in_all = 2` (Jaccard $= 2/22 = 0{,}0909$).
+
+| Modo | `#1` (`[1]`) | `#2` (`[2]`) | `#3` (`[3]`) | `#4` (`[4]`) | `#5` (`[5]`) | Rank do Alvo (`06_seguranca pos 5`) | Comportamento do LLM (`lfm3:1.7b-q4_K_M`) |
+| :--- | :--- | :--- | :--- | :--- | :--- | :---: | :--- |
+| **`bypass_rr`** (`hybrid: false`) | `03_banco (pos 3)` (`bm25#1`) | `01_arquitetura (pos 2)` (`emb#1+bm25#4`) | `11_deploy (pos 2)` (`bm25#2`) | `10_slas (pos 0)` (`emb#2`) | `07_backup (pos 7)` (`bm25#3`) | **6º lugar** *(cortado)* | **Alucinação por distrator:** `top_k=5` ímpar dá 3 vagas ao `bm25` e corta `emb#3`; LLM atribui proteção ao hash SHA-256 `[3]` |
+| **`rrf60`** ($k=60$, 1:1) | `01_arquitetura (pos 2)` (`0.032018`) | `01_arquitetura (pos 5)` (`0.029631`, `bm25#8+emb#7`) | `03_banco (pos 3)` (`0.016393`, `bm25#1`) | `11_deploy (pos 2)` (`0.016129`, `bm25#2`) | `10_slas (pos 0)` (`0.016129`, `emb#2`) | **7º lugar** (`0.015873`) | ***Fusion Tax* clássico:** consenso mediano (`#8+#7`) + `bm25#1` e `bm25#2` expulsam `emb#3` do Top-5; LLM improvisa sem a fonte |
+| **`convex`** (Min-Max, 1:1) | `01_arquitetura (pos 2)` (`0.762708`) | `03_banco (pos 3)` (`0.500000`, `bm25#1`) | `11_deploy (pos 2)` (`0.487607`, `bm25#2`) | `07_backup (pos 7)` (`0.442382`, `bm25#3`) | `10_slas (pos 0)` (`0.410707`, `emb#2`) | **7º lugar** (`0.239950`) | Topo plano do BM25 (`10.21, 10.15, 9.93`) domina `[2]..[4]` e mantém o gabarito fora do Top-5 |
+| **`dbsf`** ($\mu \pm 3\sigma$, 1:1) | `01_arquitetura (pos 2)` (`0.718424`) | `01_arquitetura (pos 5)` (`0.399584`) | `03_banco (pos 3)` (`0.390783`, `bm25#1`) | `10_slas (pos 0)` (`0.389140`, `emb#2`) | `11_deploy (pos 2)` (`0.384926`, `bm25#2`) | **7º lugar** (`0.292304`) | Fusão simétrica 1:1 mantém os 2 consensos + `bm25#1`, `emb#2`, `bm25#2` no Top-5 |
+| **`weighted_rrf`** (`bm25=1, emb=2`) | `01_arquitetura (pos 2)` (`0.048412`) | `01_arquitetura (pos 5)` (`0.044557`) | `10_slas (pos 0)` (`0.032258`, `emb#2`) | **`06_seguranca (pos 5)`** (`0.031746`, `emb#3`) | `01_arquitetura (pos 12)` (`0.031250`, `emb#4`) | **4º lugar (`[4]`)** | **Resgate completo:** $\frac{2{,}0}{63} = 0{,}031746 > \frac{1{,}0}{61} = 0{,}016393$; LLM responde exatamente o erro HTTP 503 sem exibir URLs/chaves e cita `[4]` |
+
+- **Reavaliação offline pós-auditoria:** a reexecução offline do `Hybrid.run` unificado sobre os objetos `retrieval` salvos em `L02__rrf60.json` e `S02__rrf60.json` confirmou `identical_ranking = True` em ambos os casos (`target_fused_rank = 1` em `L02` e `target_fused_rank = 7` em `S02`, `boundary_tie = False`).
+
 ---
 
 ## 6. Especificação Técnica das Próximas Fases (F3 a F11)
@@ -1119,6 +1264,36 @@ Adicionar em `tests/test_pipeline.py`:
 - Redigir `docs/g7-hybrid.md` consolidando a pergunta de pesquisa, protocolo experimental, tabelas T1–T6, análise crítica dos casos de *Fusion Tax*, limitações estruturais da fusão e recomendação fundamentada de quando manter ou rejeitar cada estratégia.
 - Rodar toda a verificação de CI (`ruff check .`, `rag-lab validate`, `rag-lab doctor`, `pytest` completo incluindo `test_api.py` e `pytest -m integration`, e `npm run docs:check`).
 - Abrir o Pull Request de `feat/g7-hybrid` para `develop`.
+
+### 6.7 Roadmap de Commits e Checklist do que Falta (Trilha até a Entrega Final)
+
+Para manter a rastreabilidade científica exigida em `docs/missoes.md` (separando claramente a criação do ferramental, o congelamento do gabarito revisado por humanos e a coleta/avaliação final), o restante do projeto seguirá **4 commits atômicos e auditáveis** na branch `feat/g7-hybrid` (além da manutenção da branch enxuta `g7-hybrid`):
+
+#### Commit A — Sincronização `upstream/develop` (`923cd03`), Unificação Algorítmica e Documentação do Piloto
+- [x] Rebase de `feat/g7-hybrid` sobre `upstream/develop` (`923cd03`), integrando `tagging_method` e `TAGGING_METHOD_ENV` em `src/rag_lab/config.py` sem alterar `config/lab.yaml`.
+- [x] Unificação de `src/rag_lab/modules/hybrid.py` com `_resolve_hybrid_config` (precedência `settings.hybrid` -> `payload["attributes"]["hybrid_config"]` -> `("rrf", {})`) e teto `0 <= w <= 100` em runtime.
+- [x] Auditoria algorítmica do desempate `(-e["score"], e["id"])` e de `boundary_tie`, adicionando 4 novos testes de regressão em `tests/test_hybrid.py` (39 casos em `test_hybrid.py`; `121 passed, 2 skipped` na suíte total).
+- [x] Atualização aditiva de `docs/g7-plano-implementacao.md` registrando a auditoria, o piloto ao vivo (`L02` e `S02`) e este roadmap.
+- [ ] Revisão final do working tree pelo grupo e execução do `git commit` (Commit A) em `feat/g7-hybrid`.
+
+#### Commit B — Fase F9: Ferramental de Coleta, Replay Offline Exato e Testes de Métricas (Pré-Homologação)
+- [ ] Implementar `experiments/g7/rodar.py` (execução controlada por YAML, contador de chamadas `chat_calls`/`embed_calls`, gravação de envelopes em `data/results/g7/<run_id>/envelopes/` e geração automática de `manifest.json` com hashes SHA-256 e metadados de ambiente).
+- [ ] Implementar `experiments/g7/avaliar.py` (motor de *replay* offline exato para varredura de `rrf_k`, permutações de *round-robin* e estratégias de fusão; verificação automática `replay_ids == online_ids`; geração das tabelas CSV/Markdown **T1 a T6** e exportação de planilha/CSV para avaliação humana de fidelidade e citações).
+- [ ] Implementar `tests/test_g7_avaliacao.py` (testes unitários determinísticos para `Recall@k`, `Hit@k`, `MRR`, `nDCG@k`, Jaccard, extração de citações `[n]`, taxa de abstenção e equivalência do motor de *replay* offline).
+- [ ] Validar `ruff check .` e `pytest` com `test_g7_avaliacao.py` verde e registrar a Fase F9 em `docs/g7-plano-implementacao.md`.
+
+#### Commit C — Conclusão da Fase F8: Homologação Humana do Gabarito e Congelamento do SHA-256
+- [ ] Revisão humana cruzada das 24 perguntas e dos 35 trechos relevantes em `experiments/g7/perguntas_gabarito.yaml` por Diego, Gabriel Alves e João Victor Póvoa.
+- [ ] Atualização do campo `status_revisao` de `"pendente_validacao_humana"` para `"validado"` (ou `"homologado"`) nos 24 itens.
+- [ ] Cálculo e congelamento do hash **SHA-256 definitivo** de `experiments/g7/perguntas_gabarito.yaml` em `experiments/g7/README.md` e `docs/g7-plano-implementacao.md` **antes** de iniciar a coleta oficial da Fase F10.
+
+#### Commit D — Fases F10 e F11: Execução Oficial da Matriz E0–E6, Avaliação Humana e Relatório Final `docs/g7-hybrid.md`
+- [ ] Definir e fixar o par oficial de modelos no Ollama para a bateria E0–E6 (padrão dos YAMLs `llama3.2:3b` + `nomic-embed-text` / `embeddinggemma:300m` ou par validado no piloto `lfm3:1.7b-q4_K_M` + `nomic-embed-text:latest`, documentando digests exatos no `manifest.json`).
+- [ ] Executar a ingestão única do corpus (`12` arquivos `.md`, `135` chunks) e rodar a matriz experimental completa **E0 a E6** via `experiments/g7/rodar.py` e `experiments/g7/avaliar.py`.
+- [ ] Realizar a avaliação humana das respostas geradas (rubrica 0–2 de fidelidade ao contexto, precisão das citações `[n]` e abstenção em `N01`–`N06`) e consolidar as tabelas **T1 a T6** em `experiments/g7/results/`.
+- [ ] Redigir o relatório técnico final da missão em `docs/g7-hybrid.md` (pergunta de pesquisa, metodologia, tabelas T1–T6, análise matemática e empírica de *Fusion Tax*, comparação RRF vs. Weighted RRF vs. Convex vs. DBSF vs. Round-Robin, acoplamento com `reranking` e recomendações práticas).
+- [ ] Executar a validação final completa fora do sandbox: `ruff check .`, `rag-lab validate`, `rag-lab doctor`, `pytest` completo (incluindo `tests/test_api.py` e `pytest -m integration`) e `npm run docs:check`.
+- [ ] Sincronizar se necessário a branch de arquivo único `g7-hybrid` (`src/rag_lab/modules/hybrid.py` já está 100% idêntico entre as duas branches) e abrir o Pull Request final.
 
 ---
 
@@ -1260,3 +1435,23 @@ Adicionar em `tests/test_pipeline.py`:
   - Script de verificação de corpus e gabarito: `12/12` arquivos entre `1.826` e `2.234` chars (`135` chunks), `24/24` perguntas (`6` por perfil) e `35/35` `trechos_relevantes` casando exatamente no arquivo e dentro de um único chunk sentencial de `split_document`.
   - SHA-256 inicial pré-revisão humana de `experiments/g7/perguntas_gabarito.yaml`: `046841378bc39d6dd95fd2edefe37f3d91161afed85802925d6e932c68762e32`.
 - **Pendências / Descobertas:** Revisão humana cruzada pelo trio (Diego, Gabriel Alves e João Victor Póvoa) para alterar `status_revisao` de `"pendente_validacao_humana"` para `"validado"`/`"homologado"` e congelar o SHA-256 definitivo antes da coleta oficial na F10; pronto para iniciar a Fase F9 (`rodar.py`, `avaliar.py` e `tests/test_g7_avaliacao.py`).
+
+#### Sincronização com `upstream/develop` (`923cd03`), Auditoria Algorítmica e Piloto Ao Vivo (`2026-11-26`)
+- **Resumo:** Rebase completo de `feat/g7-hybrid` sobre `upstream/develop` (`923cd03`), unificação de `src/rag_lab/modules/hybrid.py` com o fallback autocontido `_resolve_hybrid_config` da branch `g7-hybrid`, auditoria matemática linha a linha do critério de desempate `(-e["score"], e["id"])` e de `boundary_tie`, adição de 4 novos testes de regressão em `tests/test_hybrid.py` (elevando a suíte unitária para `121 passed, 2 skipped`) e registro completo do piloto ao vivo (`L02` e `S02` nos 5 modos em Docker Compose + Ollama).
+- **Arquivos tocados:**
+  - `src/rag_lab/config.py` (merge limpo preservando `TaggingMethod` / `TAGGING_METHOD_ENV` de `upstream/develop` e `HybridConfig` / `Weight` do G7)
+  - `src/rag_lab/modules/hybrid.py` (267 linhas; unificado com `_resolve_hybrid_config` e validação `0 <= w <= 100` em runtime)
+  - `tests/test_config.py` (ajuste de `config_data["tagging_method"] = "llm"` nos 2 testes diretos de `Settings.model_validate` do G7)
+  - `tests/test_hybrid.py` (672 linhas; +180 linhas com 4 novos testes de regressão, totalizando 19 funções / 39 casos parametrizados)
+  - `docs/g7-plano-implementacao.md` (atualização aditiva do painel de progresso ASCII, Seção 5.7, Seção 6.7 e este registro no changelog)
+- **Trechos-chave / Mudanças de design:**
+  - Unificação de `_resolve_hybrid_config(payload, settings)` com prioridade `settings.hybrid` -> `payload["attributes"]["hybrid_config"]` -> `("rrf", {})`, tornando `src/rag_lab/modules/hybrid.py` 100% idêntico entre `feat/g7-hybrid` e `g7-hybrid`.
+  - Prova formal e empírica de que `ordered = sorted(merged.values(), key=lambda e: (-e["score"], e["id"]))` é estritamente invariante à escala bruta dos recuperadores: em `S02__rrf60.json`, o empate em $r=3$ (`1/63`) foi decidido lexicograficamente pelos hashes SHA-256 (`"54833391d69b..." < "e59f8e132b52..."`), enquanto nos empates em $r=5$ (`1/65`) e $r=6$ (`1/66`) os candidatos do `embedding` (`raw_score ~ 0.67`) venceram os do `bm25` (`raw_score ~ 8.5–8.9`) porque `"909b83e155a1..." < "df6be78ee17c..."` e `"107492924e6b..." < "424a91ce6ffb..."`.
+- **Por que fizemos assim:**
+  - Manter compatibilidade simultânea com a entrega de arquivo único (`g7-hybrid` sobre `upstream/develop` sem tocar em `config.py`) e com a arquitetura completa do projeto (`feat/g7-hybrid`), blindando com testes de regressão a invariância de escala no desempate, a preservação de `metadata["tags"]` e a detecção de `boundary_tie` na fronteira `top_k`.
+- **Resultados de validação:**
+  - `uv run --no-sync python -m ruff check .`: `All checks passed!`
+  - `uv run --no-sync python -m rag_lab.cli validate` (`config/lab.yaml` + 13 YAMLs de `experiments/g7/configs/*.yaml`): `14/14 {"valid": true}`
+  - `uv run --no-sync python -m pytest --ignore=tests/test_api.py -v`: `121 passed, 2 skipped in 3.12s`
+  - Reavaliação offline dos envelopes do piloto ao vivo (`L02__rrf60.json` e `S02__rrf60.json`): `identical_ranking=True` em ambos (`target_fused_rank=1` em `L02`, `target_fused_rank=7` em `S02`, `boundary_tie=False`).
+- **Pendências / Descobertas:** Working tree pronta para o **Commit A** em `feat/g7-hybrid`; próximo passo imediato após o commit é iniciar a Fase F9 (**Commit B**: `experiments/g7/rodar.py`, `experiments/g7/avaliar.py` e `tests/test_g7_avaliacao.py`).

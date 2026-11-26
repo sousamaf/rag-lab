@@ -492,3 +492,183 @@ def test_all_strategies_roundtrip_strict_json_and_envelope_contract(services, st
     for entry in telemetry["ranking"]:
         assert math.fsum(entry["contributions"].values()) == entry["fused"]
 
+
+def test_rrf_tie_breaking_is_strictly_scale_invariant_by_chunk_id(services):
+    def make_chunk(cid: str, pos: int) -> Chunk:
+        return Chunk(id=cid, document_id="d1", source="a.txt", position=pos, text=cid)
+
+    # Caso 1: chunk do embedding em rank 3 (score bruto 0.68) tem id lexicograficamente menor
+    # que chunk do bm25 em rank 3 (score bruto 30.0) -> embedding vence o desempate em 1/63.
+    bm25_list = [
+        _make_evidence(make_chunk("01_bm25", 1), "bm25", 50.0),
+        _make_evidence(make_chunk("02_bm25", 2), "bm25", 40.0),
+        _make_evidence(make_chunk("z_bm25_rank3", 3), "bm25", 30.0),
+    ]
+    emb_list = [
+        _make_evidence(make_chunk("01_emb", 10), "embedding", 0.95),
+        _make_evidence(make_chunk("02_emb", 11), "embedding", 0.85),
+        _make_evidence(make_chunk("a_emb_rank3", 12), "embedding", 0.68),
+    ]
+    payload = Envelope(question="RAG").model_dump()
+    payload["retrieval"] = {"bm25": bm25_list, "embedding": emb_list}
+
+    result = Hybrid().run(payload, services)
+    rank3_pair = [e for e in result["evidence"] if e["id"] in {"a_emb_rank3", "z_bm25_rank3"}]
+    assert [e["id"] for e in rank3_pair] == ["a_emb_rank3", "z_bm25_rank3"]
+    assert rank3_pair[0]["score"] == rank3_pair[1]["score"] == pytest.approx(1.0 / 63.0)
+
+
+@pytest.mark.parametrize(
+    ("strategy", "weights"),
+    [
+        ("rrf", {}),
+        ("weighted_rrf", {"bm25": 1.0, "embedding": 2.0}),
+        ("convex", {}),
+        ("dbsf", {}),
+    ],
+)
+def test_hybrid_preserves_metadata_tags_across_all_strategies(services, strategy, weights):
+    services.settings.hybrid.strategy = strategy
+    services.settings.hybrid.weights = weights
+
+    c_consensus = Chunk(
+        id="c_cons",
+        document_id="d1",
+        source="01.md",
+        position=1,
+        text="Consenso",
+        metadata={"tags": ["seguranca-e-privacidade", "infraestrutura-e-redes"]},
+    )
+    c_only_emb = Chunk(
+        id="c_emb",
+        document_id="d2",
+        source="06.md",
+        position=5,
+        text="Exclusivo embedding",
+        metadata={"tags": ["dados-e-inteligencia-artificial"]},
+    )
+    payload = Envelope(question="RAG").model_dump()
+    payload["retrieval"] = {
+        "bm25": [_make_evidence(c_consensus, "bm25", 12.0)],
+        "embedding": [
+            _make_evidence(c_consensus, "embedding", 0.88),
+            _make_evidence(c_only_emb, "embedding", 0.77),
+        ],
+    }
+
+    result = Hybrid().run(payload, services)
+    by_id = {item["id"]: item for item in result["evidence"]}
+    assert by_id["c_cons"]["metadata"]["tags"] == [
+        "seguranca-e-privacidade",
+        "infraestrutura-e-redes",
+    ]
+    assert by_id["c_emb"]["metadata"]["tags"] == ["dados-e-inteligencia-artificial"]
+
+
+def test_hybrid_config_attribute_fallback_precedence_and_validation(services):
+    from types import SimpleNamespace
+
+    chunks = services.store.all_chunks()
+    base_retrieval = {
+        "bm25": [_make_evidence(chunks[0], "bm25", 10.0)],
+        "embedding": [_make_evidence(chunks[1], "embedding", 0.9)],
+    }
+
+    # 1) Quando settings.hybrid existe, tem precedência sobre attributes["hybrid_config"].
+    services.settings.hybrid.strategy = "rrf"
+    services.settings.hybrid.weights = {}
+    payload_with_override = Envelope(
+        question="RAG",
+        attributes={"hybrid_config": {"strategy": "convex"}},
+    ).model_dump()
+    payload_with_override["retrieval"] = deepcopy(base_retrieval)
+    res_precedence = Hybrid().run(payload_with_override, services)
+    assert res_precedence["attributes"]["hybrid"]["strategy"] == "rrf"
+
+    # 2) Sem settings.hybrid (contrato upstream/develop), usa attributes["hybrid_config"].
+    stub_services = SimpleNamespace(
+        settings=SimpleNamespace(pipeline=services.settings.pipeline)
+    )
+    payload_fallback = Envelope(
+        question="RAG",
+        attributes={
+            "hybrid_config": {
+                "strategy": "weighted_rrf",
+                "weights": {"bm25": 1, "embedding": 2.0},
+            }
+        },
+    ).model_dump()
+    payload_fallback["retrieval"] = deepcopy(base_retrieval)
+    res_fallback = Hybrid().run(payload_fallback, stub_services)
+    assert res_fallback["attributes"]["hybrid"]["strategy"] == "weighted_rrf"
+    assert res_fallback["attributes"]["hybrid"]["params"]["weights"] == {
+        "bm25": 1.0,
+        "embedding": 2.0,
+    }
+
+    # 3) Sem settings.hybrid e sem attributes["hybrid_config"], assume padrão ("rrf", {}).
+    payload_default = Envelope(question="RAG").model_dump()
+    payload_default["retrieval"] = deepcopy(base_retrieval)
+    res_default = Hybrid().run(payload_default, stub_services)
+    assert res_default["attributes"]["hybrid"]["strategy"] == "rrf"
+
+    # 4) Validação estrita de tipos e chaves em attributes["hybrid_config"].
+    invalid_configs = [
+        "not_a_dict",
+        {"strategy": "rrf", "extra_key": 1},
+        {"strategy": "unknown_strategy"},
+        {"strategy": "convex", "weights": [1.0, 2.0]},
+        {"strategy": "weighted_rrf", "weights": {"": 1.0, "embedding": 1.0}},
+        {"strategy": "weighted_rrf", "weights": {"bm25": True, "embedding": 1.0}},
+        {"strategy": "weighted_rrf", "weights": {"bm25": -1.0, "embedding": 1.0}},
+        {"strategy": "weighted_rrf", "weights": {"bm25": 100.1, "embedding": 1.0}},
+        {"strategy": "weighted_rrf", "weights": {"bm25": float("nan"), "embedding": 1.0}},
+    ]
+    for bad_cfg in invalid_configs:
+        bad_payload = Envelope(question="RAG", attributes={"hybrid_config": bad_cfg}).model_dump()
+        bad_payload["retrieval"] = deepcopy(base_retrieval)
+        with pytest.raises(ValueError):
+            Hybrid().run(bad_payload, stub_services)
+
+
+def test_boundary_tie_true_and_false_at_top_k_cutoff(services):
+    def make_chunk(cid: str, pos: int) -> Chunk:
+        return Chunk(id=cid, document_id="d1", source="a.txt", position=pos, text=cid)
+
+    # Reproduz a geometria de S02: 2 itens de consenso no topo (#1 e #2), seguidos de pares
+    # exclusivos empatados em rank 1 (#3), rank 2 (#4 e #5) e rank 3 (#6 e #7).
+    c_cons1 = make_chunk("01_cons", 1)
+    c_cons2 = make_chunk("02_cons", 2)
+    bm25_list = [
+        _make_evidence(make_chunk("10_bm25_r1", 10), "bm25", 10.2),
+        _make_evidence(make_chunk("20_bm25_r2", 20), "bm25", 10.1),
+        _make_evidence(make_chunk("30_bm25_r3", 30), "bm25", 9.9),
+        _make_evidence(c_cons1, "bm25", 9.0),
+        _make_evidence(c_cons2, "bm25", 8.1),
+    ]
+    emb_list = [
+        _make_evidence(c_cons1, "embedding", 0.72),
+        _make_evidence(make_chunk("21_emb_r2", 21), "embedding", 0.71),
+        _make_evidence(make_chunk("31_emb_r3", 31), "embedding", 0.69),
+        _make_evidence(make_chunk("41_emb_r4", 41), "embedding", 0.68),
+        _make_evidence(c_cons2, "embedding", 0.67),
+    ]
+    base_payload = Envelope(question="RAG").model_dump()
+    base_payload["retrieval"] = {"bm25": bm25_list, "embedding": emb_list}
+
+    # Com top_k = 5: #4 e #5 empatam em 1/62, e #6 tem 1/63 -> sem empate na fronteira 5|6.
+    services.settings.pipeline.top_k = 5
+    res_top5 = Hybrid().run(deepcopy(base_payload), services)
+    assert res_top5["attributes"]["hybrid"]["boundary_tie"] is False
+
+    # Com top_k = 4: #4 e #5 empatam em 1/62 na fronteira 4|5 -> boundary_tie True.
+    services.settings.pipeline.top_k = 4
+    res_top4 = Hybrid().run(deepcopy(base_payload), services)
+    assert res_top4["attributes"]["hybrid"]["boundary_tie"] is True
+
+    # Com top_k = 6: #6 e #7 empatam em 1/63 na fronteira 6|7 -> boundary_tie True.
+    services.settings.pipeline.top_k = 6
+    res_top6 = Hybrid().run(deepcopy(base_payload), services)
+    assert res_top6["attributes"]["hybrid"]["boundary_tie"] is True
+
+

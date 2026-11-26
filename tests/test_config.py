@@ -58,6 +58,7 @@ def test_yaml_declares_every_mission(settings):
 
 
 def test_hybrid_config_defaults_and_valid_strategies(config_data):
+    config_data["tagging_method"] = "llm"
     default_settings = Settings.model_validate(config_data)
     assert default_settings.hybrid.strategy == "rrf"
     assert default_settings.hybrid.weights == {}
@@ -103,6 +104,7 @@ def test_hybrid_config_defaults_and_valid_strategies(config_data):
     ],
 )
 def test_invalid_hybrid_config_rejected(config_data, hybrid_cfg):
+    config_data["tagging_method"] = "llm"
     config_data["modules"]["bm25"]["enabled"] = True
     config_data["modules"]["embedding"]["enabled"] = True
     config_data["modules"]["hybrid"]["enabled"] = True

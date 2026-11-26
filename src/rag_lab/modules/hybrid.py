@@ -80,12 +80,57 @@ def _resolve_weights(
     weights: dict[str, float] = {}
     for r in retrievers:
         w = configured_weights[r]
-        if isinstance(w, bool) or not isinstance(w, (int, float)) or not math.isfinite(w) or w < 0:
+        if (
+            isinstance(w, bool)
+            or not isinstance(w, (int, float))
+            or not math.isfinite(w)
+            or not 0 <= w <= 100
+        ):
             raise ValueError(f"Peso inválido para o recuperador '{r}'.")
         weights[r] = float(w)
     if retrievers and math.fsum(weights.values()) <= 0.0:
         raise ValueError("hybrid.weights exige ao menos um peso maior que zero.")
     return weights
+
+
+def _resolve_hybrid_config(payload: dict, settings: Any) -> tuple[str, dict[str, Any]]:
+    hybrid_cfg = getattr(settings, "hybrid", None)
+    if hybrid_cfg is not None:
+        return hybrid_cfg.strategy, hybrid_cfg.weights
+
+    attributes = payload.get("attributes")
+    if not isinstance(attributes, dict) or "hybrid_config" not in attributes:
+        return "rrf", {}
+
+    raw_cfg = attributes["hybrid_config"]
+    if not isinstance(raw_cfg, dict):
+        raise ValueError("attributes.hybrid_config deve ser um dicionário.")
+    unknown_keys = set(raw_cfg) - {"strategy", "weights"}
+    if unknown_keys:
+        raise ValueError(
+            f"Opções desconhecidas em attributes.hybrid_config: {', '.join(sorted(unknown_keys))}"
+        )
+
+    strategy = raw_cfg.get("strategy", "rrf")
+    if not isinstance(strategy, str) or strategy not in STRATEGIES:
+        raise ValueError(f"Estratégia híbrida desconhecida: {strategy}")
+
+    raw_weights = raw_cfg.get("weights", {})
+    if not isinstance(raw_weights, dict):
+        raise ValueError("attributes.hybrid_config.weights deve ser um dicionário.")
+    weights: dict[str, float] = {}
+    for retriever, weight in raw_weights.items():
+        if not isinstance(retriever, str) or not retriever:
+            raise ValueError("Nome de recuperador inválido em attributes.hybrid_config.weights.")
+        if (
+            isinstance(weight, bool)
+            or not isinstance(weight, (int, float))
+            or not math.isfinite(weight)
+            or not 0 <= weight <= 100
+        ):
+            raise ValueError(f"Peso inválido para o recuperador '{retriever}'.")
+        weights[retriever] = float(weight)
+    return strategy, weights
 
 
 def _extract_raw_scores(retriever: str, ranking: list[dict[str, Any]]) -> list[float]:
@@ -124,13 +169,13 @@ def _retriever_stats(raw_scores: list[float], weight: float) -> dict[str, Any]:
 class Hybrid:
     def run(self, payload: dict, services: Services) -> dict:
         settings = services.settings
-        strategy = settings.hybrid.strategy
+        strategy, configured_weights = _resolve_hybrid_config(payload, settings)
         rrf_k = settings.pipeline.rrf_k
         top_k = settings.pipeline.top_k
 
         retrieval = payload.get("retrieval") or {}
         retrievers = list(retrieval.keys())
-        weights = _resolve_weights(strategy, settings.hybrid.weights, retrievers)
+        weights = _resolve_weights(strategy, configured_weights, retrievers)
         weight_sum = math.fsum(weights.values())
         scorer = STRATEGIES[strategy]
 
