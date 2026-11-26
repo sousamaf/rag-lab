@@ -5,11 +5,20 @@ from __future__ import annotations
 import os
 import re
 from pathlib import Path
-from typing import Literal
+from typing import Annotated, Literal
 
 import yaml
 from dotenv import load_dotenv
-from pydantic import BaseModel, ConfigDict, Field, StrictBool, model_validator
+from pydantic import (
+    AfterValidator,
+    BaseModel,
+    ConfigDict,
+    Field,
+    StrictBool,
+    StrictFloat,
+    StrictInt,
+    model_validator,
+)
 
 MODULE_ORDER = (
     "multi_query",
@@ -25,6 +34,14 @@ MODULE_ORDER = (
 )
 TaggingMethod = Literal["llm", "terms"]
 TAGGING_METHOD_ENV = "${RAG_TAG_CLASSIFIER:-llm}"
+RETRIEVER_NAMES = ("tfidf", "bm25", "embedding")
+RetrieverName = Literal["tfidf", "bm25", "embedding"]
+FusionStrategy = Literal["rrf", "weighted_rrf", "convex", "dbsf"]
+Weight = Annotated[
+    StrictFloat | StrictInt,
+    Field(ge=0, le=100, allow_inf_nan=False),
+    AfterValidator(float),
+]
 
 
 class StrictModel(BaseModel):
@@ -61,6 +78,11 @@ class PipelineConfig(StrictModel):
     max_sentence_chars: int = Field(default=1000, ge=100, le=10000)
 
 
+class HybridConfig(StrictModel):
+    strategy: FusionStrategy = "rrf"
+    weights: dict[RetrieverName, Weight] = Field(default_factory=dict)
+
+
 class Settings(StrictModel):
     database_url: str = Field(min_length=1, repr=False)
     llm: LLMConfig
@@ -68,14 +90,27 @@ class Settings(StrictModel):
     pipeline: PipelineConfig
     modules: dict[str, Switch]
     tagging_method: TaggingMethod = "llm"
+    hybrid: HybridConfig = Field(default_factory=HybridConfig)
 
     @model_validator(mode="after")
     def validate_pipeline(self) -> Settings:
         if set(self.modules) != set(MODULE_ORDER):
             raise ValueError(f"modules deve declarar exatamente: {', '.join(MODULE_ORDER)}")
-        retrievers = sum(self.modules[name].enabled for name in ("tfidf", "bm25", "embedding"))
-        if self.modules["hybrid"].enabled and retrievers < 2:
-            raise ValueError("Hybrid exige ao menos dois recuperadores ativos.")
+        active_retrievers = {name for name in RETRIEVER_NAMES if self.modules[name].enabled}
+        if self.modules["hybrid"].enabled:
+            if len(active_retrievers) < 2:
+                raise ValueError("Hybrid exige ao menos dois recuperadores ativos.")
+            if self.hybrid.strategy == "rrf" and self.hybrid.weights:
+                raise ValueError("A estratégia 'rrf' não aceita weights; use 'weighted_rrf'.")
+            if self.hybrid.strategy == "weighted_rrf" and not self.hybrid.weights:
+                raise ValueError("A estratégia 'weighted_rrf' exige weights explícitos.")
+            if self.hybrid.weights:
+                if set(self.hybrid.weights) != active_retrievers:
+                    raise ValueError(
+                        "hybrid.weights deve declarar exatamente os recuperadores ativos."
+                    )
+                if sum(self.hybrid.weights.values()) <= 0:
+                    raise ValueError("hybrid.weights exige ao menos um peso maior que zero.")
         if self.modules["hyde"].enabled and not self.modules["embedding"].enabled:
             raise ValueError("HyDE exige Embedding ativo.")
         if self.pipeline.candidate_k < self.pipeline.top_k:

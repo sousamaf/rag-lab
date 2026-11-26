@@ -55,3 +55,58 @@ def test_invalid_config_rejected(config_data, change):
 
 def test_yaml_declares_every_mission(settings):
     assert set(settings.modules) == set(MODULE_ORDER)
+
+
+def test_hybrid_config_defaults_and_valid_strategies(config_data):
+    default_settings = Settings.model_validate(config_data)
+    assert default_settings.hybrid.strategy == "rrf"
+    assert default_settings.hybrid.weights == {}
+
+    config_data["modules"]["bm25"]["enabled"] = True
+    config_data["modules"]["embedding"]["enabled"] = True
+    config_data["modules"]["hybrid"]["enabled"] = True
+
+    config_data["hybrid"] = {"strategy": "weighted_rrf", "weights": {"bm25": 1, "embedding": 2.5}}
+    weighted = Settings.model_validate(config_data)
+    assert weighted.hybrid.strategy == "weighted_rrf"
+    assert weighted.hybrid.weights == {"bm25": 1.0, "embedding": 2.5}
+    assert all(isinstance(v, float) for v in weighted.hybrid.weights.values())
+
+    for strategy in ("convex", "dbsf"):
+        config_data["hybrid"] = {"strategy": strategy}
+        parsed = Settings.model_validate(config_data)
+        assert parsed.hybrid.strategy == strategy
+        assert parsed.hybrid.weights == {}
+
+        config_data["hybrid"] = {"strategy": strategy, "weights": {"bm25": 0, "embedding": 1.0}}
+        parsed_weighted = Settings.model_validate(config_data)
+        assert parsed_weighted.hybrid.weights == {"bm25": 0.0, "embedding": 1.0}
+
+
+@pytest.mark.parametrize(
+    "hybrid_cfg",
+    [
+        {"strategy": "rrf", "unknown_option": True},
+        {"strategy": "combmnz"},
+        {"strategy": "weighted_rrf", "weights": {"bm25": 1.0, "unknown": 1.0}},
+        {"strategy": "weighted_rrf", "weights": {"bm25": -0.1, "embedding": 1.0}},
+        {"strategy": "weighted_rrf", "weights": {"bm25": 100.1, "embedding": 1.0}},
+        {"strategy": "weighted_rrf", "weights": {"bm25": float("nan"), "embedding": 1.0}},
+        {"strategy": "weighted_rrf", "weights": {"bm25": float("inf"), "embedding": 1.0}},
+        {"strategy": "weighted_rrf", "weights": {"bm25": True, "embedding": 1.0}},
+        {"strategy": "weighted_rrf", "weights": {"bm25": "1.0", "embedding": 1.0}},
+        {"strategy": "rrf", "weights": {"bm25": 1.0, "embedding": 1.0}},
+        {"strategy": "weighted_rrf"},
+        {"strategy": "weighted_rrf", "weights": {"tfidf": 1.0, "bm25": 1.0, "embedding": 1.0}},
+        {"strategy": "weighted_rrf", "weights": {"bm25": 1.0}},
+        {"strategy": "convex", "weights": {"bm25": 0, "embedding": 0.0}},
+    ],
+)
+def test_invalid_hybrid_config_rejected(config_data, hybrid_cfg):
+    config_data["modules"]["bm25"]["enabled"] = True
+    config_data["modules"]["embedding"]["enabled"] = True
+    config_data["modules"]["hybrid"]["enabled"] = True
+    config_data["hybrid"] = hybrid_cfg
+    with pytest.raises(ValidationError):
+        Settings.model_validate(config_data)
+
