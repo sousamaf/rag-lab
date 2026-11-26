@@ -23,7 +23,7 @@ definidos no YAML:
 
 ```sh
 ollama pull llama3.2:3b
-ollama pull nomic-embed-text
+ollama pull embeddinggemma:300m
 cp .env.example .env
 docker compose up --build -d --wait
 docker compose exec app rag-lab doctor
