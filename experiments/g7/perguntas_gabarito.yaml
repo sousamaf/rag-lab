@@ -1,0 +1,492 @@
+# Gabarito Experimental Independente — Grupo G7 (Hybrid)
+# Autores: Diego, Gabriel Alves e João Victor Póvoa
+# Construído manualmente a partir do corpus autoral "Núcleo Aurora" ANTES de qualquer execução do sistema.
+
+meta:
+  grupo: G7
+  missao: hybrid
+  corpus_dir: experiments/g7/corpus
+  total_documentos: 12
+  total_perguntas: 24
+  perfis:
+    literal: 6
+    semantica: 6
+    composta: 6
+    sem_resposta: 6
+  protocolo_revisao: "Dupla anotação independente (Diego e Gabriel Alves) com adjudicação por João Victor Póvoa."
+
+perguntas:
+  # ==========================================================================
+  # PERFIL 1: LITERAIS (L01 a L06)
+  # ==========================================================================
+  - id: L01
+    perfil: literal
+    pergunta: "Qual é o tempo máximo de vida do token de sessão definido pela norma POL-SEG-09 e quantas tentativas inválidas provocam o evento SEC-LCK-301?"
+    responder: true
+    documentos_relevantes:
+      - 02_autenticacao_identidade.md
+    trechos_relevantes:
+      - fonte: 02_autenticacao_identidade.md
+        trecho: "Por determinação da norma interna POL-SEG-09, o token de sessão de qualquer operador humano ou serviço automatizado possui tempo de vida máximo improrrogável de 18 minutos."
+        essencial: true
+      - fonte: 02_autenticacao_identidade.md
+        trecho: "Quando um terminal acumula 5 tentativas consecutivas de autenticação com assinatura inválida, a conta associada sofre bloqueio preventivo por 45 minutos e gera o evento de segurança SEC-LCK-301."
+        essencial: true
+    fatos_esperados:
+      - "18 minutos de tempo máximo de vida do token de sessão (POL-SEG-09)"
+      - "5 tentativas consecutivas inválidas geram bloqueio por 45 minutos e evento SEC-LCK-301"
+    observacao_experimental: "Testa códigos normativos exatos (POL-SEG-09, SEC-LCK-301) com distrator lexical intenso na palavra 'token' frente a 05_faturamento_cotas.md."
+    anotador: Diego
+    revisor: Gabriel Alves
+    status_revisao: pendente_validacao_humana
+
+  - id: L02
+    perfil: literal
+    pergunta: "Em que situação o motor aurora-vectordb aborta a busca com o código de erro ERR-AUR-417?"
+    responder: true
+    documentos_relevantes:
+      - 03_banco_vetorial_indexacao.md
+    trechos_relevantes:
+      - fonte: 03_banco_vetorial_indexacao.md
+        trecho: "Caso uma consulta encontre registros sem vetor ou com assinatura divergente da configuração ativa, o motor aborta a busca imediatamente com o código de erro ERR-AUR-417 e exige a reingestão integral da base."
+        essencial: true
+    fatos_esperados:
+      - "Quando há registros sem vetor ou com assinatura divergente da configuração ativa"
+      - "Exige reingestão integral da base"
+    observacao_experimental: "Consulta de identificador exato (ERR-AUR-417 e aurora-vectordb) onde BM25/TF-IDF colocam o trecho em 1º com folga; avalia se RRF sofre interferência de distratores ERR-AUR-508 e ERR-AUR-429."
+    anotador: Diego
+    revisor: Gabriel Alves
+    status_revisao: pendente_validacao_humana
+
+  - id: L03
+    perfil: literal
+    pergunta: "Qual fila recebe as tarefas após esgotar as retentativas no aurora-queue e por quantos dias os registros ficam retidos antes do expurgo?"
+    responder: true
+    documentos_relevantes:
+      - 04_filas_mensageria.md
+    trechos_relevantes:
+      - fonte: 04_filas_mensageria.md
+        trecho: "Após esgotar a quarta tentativa sem confirmação de sucesso, o corretor transfere a mensagem original e seu diagnóstico de erro para a fila de mensagens mortas denominada aurora.dlq.critico."
+        essencial: true
+      - fonte: 04_filas_mensageria.md
+        trecho: "Os registros retidos na fila aurora.dlq.critico permanecem disponíveis para inspeção manual da equipe de engenharia durante 21 dias antes do expurgo definitivo do disco de mensageria."
+        essencial: true
+    fatos_esperados:
+      - "Fila de mensagens mortas aurora.dlq.critico após 4 tentativas"
+      - "Retenção por 21 dias antes do expurgo definitivo"
+    observacao_experimental: "Usa os termos 'retidos' e 'expurgo', que também ocorrem em 07_backup_recuperacao.md (90 dias) e 08_auditoria_conformidade.md (365 dias)."
+    anotador: Gabriel Alves
+    revisor: João Victor Póvoa
+    status_revisao: pendente_validacao_humana
+
+  - id: L04
+    perfil: literal
+    pergunta: "Qual é a franquia mensal de tokens no aurora-billing e qual código de bloqueio é retornado quando essa cota se esgota?"
+    responder: true
+    documentos_relevantes:
+      - 05_faturamento_cotas.md
+    trechos_relevantes:
+      - fonte: 05_faturamento_cotas.md
+        trecho: "Cada unidade departamental recebe uma franquia mensal padrão de 4500000 tokens de inferência, renovada automaticamente no primeiro minuto do dia primeiro de cada mês civil."
+        essencial: true
+      - fonte: 05_faturamento_cotas.md
+        trecho: "Quando uma unidade esgota sua franquia mensal ou ultrapassa o teto da janela móvel, as novas requisições de geração são recusadas com o código de bloqueio orçamentário ERR-AUR-429."
+        essencial: true
+    fatos_esperados:
+      - "Franquia mensal de 4500000 tokens de inferência"
+      - "Código de bloqueio orçamentário ERR-AUR-429"
+    observacao_experimental: "Testa recuperação literal com termos 'tokens' e 'bloqueio' compartilhados com autenticação (02_autenticacao_identidade.md)."
+    anotador: Gabriel Alves
+    revisor: Diego
+    status_revisao: pendente_validacao_humana
+
+  - id: L05
+    perfil: literal
+    pergunta: "O que determina a diretriz POL-SEG-14 sobre a rede aurora_db_net e a porta 5432?"
+    responder: true
+    documentos_relevantes:
+      - 06_seguranca_criptografia.md
+    trechos_relevantes:
+      - fonte: 06_seguranca_criptografia.md
+        trecho: "Em conformidade com a diretriz normativa POL-SEG-14, o serviço de banco de dados PostgreSQL opera exclusivamente dentro da rede interna aurora_db_net e nunca publica a porta 5432 para interfaces externas."
+        essencial: true
+    fatos_esperados:
+      - "PostgreSQL opera exclusivamente na rede interna aurora_db_net"
+      - "Nunca publica a porta 5432 para interfaces externas"
+    observacao_experimental: "Identificadores técnicos altamente específicos (POL-SEG-14, aurora_db_net, 5432) para medir outlier de score no BM25 frente a convex e dbsf."
+    anotador: João Victor Póvoa
+    revisor: Diego
+    status_revisao: pendente_validacao_humana
+
+  - id: L06
+    perfil: literal
+    pergunta: "Quando o alerta ALR-LAT-901 é disparado e em qual porta o protocolo OpenTelemetry exporta os rastros?"
+    responder: true
+    documentos_relevantes:
+      - 09_observabilidade_telemetria.md
+    trechos_relevantes:
+      - fonte: 09_observabilidade_telemetria.md
+        trecho: "As métricas coletadas e os rastros distribuídos são exportados continuamente via protocolo OpenTelemetry gRPC na porta 4317 para o coletor central da infraestrutura."
+        essencial: true
+      - fonte: 09_observabilidade_telemetria.md
+        trecho: "Quando a duração isolada da etapa de geração textual no modelo de linguagem ultrapassa 4500 milissegundos em três amostras seguidas, o sistema dispara o alerta operacional ALR-LAT-901."
+        essencial: true
+    fatos_esperados:
+      - "Exportação OpenTelemetry gRPC na porta 4317"
+      - "Disparo de ALR-LAT-901 quando a geração ultrapassa 4500 ms em três amostras seguidas"
+    observacao_experimental: "Combina duas sentenças do mesmo documento com código literal ALR-LAT-901 e limiar 4500 ms compartilhado com 10_slas_disponibilidade.md."
+    anotador: João Victor Póvoa
+    revisor: Gabriel Alves
+    status_revisao: pendente_validacao_humana
+
+  # ==========================================================================
+  # PERFIL 2: SEMÂNTICAS (S01 a S06)
+  # ==========================================================================
+  - id: S01
+    perfil: semantica
+    pergunta: "Como a plataforma garante que uma interrupção brusca durante o cadastramento de um texto não deixe o arquivo salvo pela metade?"
+    responder: true
+    documentos_relevantes:
+      - 03_banco_vetorial_indexacao.md
+      - 07_backup_recuperacao.md
+    trechos_relevantes:
+      - fonte: 03_banco_vetorial_indexacao.md
+        trecho: "Se a geração dos vetores falhar no meio do processamento de um arquivo, a transação inteira sofre reversão automática e a versão anterior do documento permanece íntegra para os usuários."
+        essencial: true
+      - fonte: 07_backup_recuperacao.md
+        trecho: "Para garantir a integridade dos dados durante reingestões cotidianas antes mesmo do backup externo, cada documento é atualizado em uma transação atômica única no banco de dados."
+        essencial: true
+      - fonte: 07_backup_recuperacao.md
+        trecho: "Dessa forma, se ocorrer interrupção elétrica ou falha no provedor de embeddings durante a indexação, nenhuma metade de arquivo fica gravada e a versão anterior permanece disponível sem corrupção."
+        essencial: false
+    fatos_esperados:
+      - "Substituição em transação atômica única por documento no banco de dados"
+      - "Reversão automática (rollback) preservando a versão anterior íntegra"
+    observacao_experimental: "Paráfrase sem usar 'transação', 'atômica', 'reversão' ou 'embeddings'; exercita consenso entre os trechos quase redundantes de 03 e 07."
+    anotador: Diego
+    revisor: Gabriel Alves
+    status_revisao: pendente_validacao_humana
+
+  - id: S02
+    perfil: semantica
+    pergunta: "De que forma o serviço web impede que um usuário externo descubra endereços de servidores internos ou credenciais ao ocorrer um defeito de comunicação?"
+    responder: true
+    documentos_relevantes:
+      - 06_seguranca_criptografia.md
+    trechos_relevantes:
+      - fonte: 06_seguranca_criptografia.md
+        trecho: "Para evitar vazamento de topologia e de segredos em ambientes de produção, qualquer exceção lançada por bibliotecas de clientes externos é interceptada na borda HTTP e convertida em erro genérico 503 sem exibir URLs ou chaves de API."
+        essencial: true
+    fatos_esperados:
+      - "Exceções de bibliotecas/SDKs são interceptadas na borda HTTP"
+      - "Conversão em erro genérico HTTP 503 omitindo URLs e chaves de API"
+    observacao_experimental: "Consulta conceitual onde métodos lexicais têm baixa sobreposição e o recuperador vetorial (embedding) deve liderar; testa o viés 2:1 do RRF."
+    anotador: Diego
+    revisor: João Victor Póvoa
+    status_revisao: pendente_validacao_humana
+
+  - id: S03
+    perfil: semantica
+    pergunta: "Por que alterar os parâmetros de habilitação de etapas no arquivo de ajuste não modifica imediatamente o comportamento das consultas em andamento?"
+    responder: true
+    documentos_relevantes:
+      - 11_deploy_configuracao.md
+    trechos_relevantes:
+      - fonte: 11_deploy_configuracao.md
+        trecho: "Não existe recarga dinâmica de configuração no meio do atendimento de requisições, portanto qualquer alteração nos switches do YAML exige o reinício explícito do processo da aplicação ou do contêiner."
+        essencial: true
+    fatos_esperados:
+      - "Ausência de recarga dinâmica (hot-reload) de configuração por requisição"
+      - "Necessidade de reiniciar explicitamente o processo ou contêiner após editar o YAML"
+    observacao_experimental: "Evita palavras como 'recarga', 'switches', 'YAML' e 'reinício'; avalia se o RRF mantém o trecho semântico no top_k."
+    anotador: Gabriel Alves
+    revisor: Diego
+    status_revisao: pendente_validacao_humana
+
+  - id: S04
+    perfil: semantica
+    pergunta: "Qual é o impacto na cobrança do departamento quando uma pesquisa não localiza nenhum conteúdo útil no acervo e a etapa de redação da resposta é pulada?"
+    responder: true
+    documentos_relevantes:
+      - 05_faturamento_cotas.md
+      - 01_arquitetura_geral.md
+    trechos_relevantes:
+      - fonte: 05_faturamento_cotas.md
+        trecho: "Consultas que resultam em ausência de evidências na base documental e não acionam o modelo gerador final são isentas de tarifação de síntese, debitando apenas o custo de codificação da busca vetorial."
+        essencial: true
+      - fonte: 01_arquitetura_geral.md
+        trecho: "Quando todos os motores de recuperação de uma rota retornam conjuntos vazios, o coordenador aborta a chamada ao gerador textual e devolve imediatamente uma mensagem padronizada de ausência de lastro documental."
+        essencial: false
+    fatos_esperados:
+      - "Isenção da tarifação de síntese/geração quando não há evidências e o LLM não é chamado"
+      - "Débito restrito apenas ao custo de codificação da busca vetorial (se utilizada)"
+    observacao_experimental: "Paráfrase sem usar 'ausência', 'evidências', 'tarifação', 'síntese' ou 'gerador'; estressa a recuperação semântica."
+    anotador: Gabriel Alves
+    revisor: João Victor Póvoa
+    status_revisao: pendente_validacao_humana
+
+  - id: S05
+    perfil: semantica
+    pergunta: "O que ocorre com os registros já cadastrados na base caso um responsável troque o nome de um documento na pasta ou delete o arquivo do computador?"
+    responder: true
+    documentos_relevantes:
+      - 12_governanca_ingestao_dados.md
+    trechos_relevantes:
+      - fonte: 12_governanca_ingestao_dados.md
+        trecho: "Em razão dessa identidade baseada no caminho relativo, a equipe de curadoria deve manter uma pasta raiz estável, pois renomear ou mover arquivos gera novos identificadores e duplica registros se o banco não for limpo."
+        essencial: true
+      - fonte: 12_governanca_ingestao_dados.md
+        trecho: "A remoção física de um arquivo do diretório local não apaga automaticamente seus trechos já gravados no banco PostgreSQL, exigindo limpeza administrativa quando uma fonte é descontinuada."
+        essencial: true
+    fatos_esperados:
+      - "Trocar o nome ou mover gera novo identificador e duplica registros no banco"
+      - "Apagar o arquivo do disco não remove automaticamente os trechos já persistidos no PostgreSQL"
+    observacao_experimental: "Usa 'troque o nome' e 'delete do computador' em vez de 'renomear', 'remoção física' e 'diretório local'."
+    anotador: João Victor Póvoa
+    revisor: Diego
+    status_revisao: pendente_validacao_humana
+
+  - id: S06
+    perfil: semantica
+    pergunta: "Por qual motivo as equipes de teste são impedidas de adotar os próprios textos produzidos pelo assistente automatizado como padrão de resposta correta?"
+    responder: true
+    documentos_relevantes:
+      - 08_auditoria_conformidade.md
+    trechos_relevantes:
+      - fonte: 08_auditoria_conformidade.md
+        trecho: "Para assegurar rigor científico nas avaliações de qualidade da plataforma, a norma POL-AUD-03 proíbe estritamente utilizar a resposta gerada pelo próprio sistema como gabarito de referência."
+        essencial: true
+    fatos_esperados:
+      - "A norma POL-AUD-03 proíbe usar a saída do próprio sistema como gabarito para preservar o rigor científico da avaliação"
+    observacao_experimental: "Paráfrase pura de 'gabarito de referência' e 'rigor científico'; forte candidata a demonstrar vantagem de weighted_rrf/embedding sobre busca lexical."
+    anotador: João Victor Póvoa
+    revisor: Gabriel Alves
+    status_revisao: pendente_validacao_humana
+
+  # ==========================================================================
+  # PERFIL 3: COMPOSTAS (C01 a C06) — Multi-documento
+  # ==========================================================================
+  - id: C01
+    perfil: composta
+    pergunta: "Compare a periodicidade de rotação das chaves privadas Ed25519 do emissor de identidade com a periodicidade da cerimônia de recifragem das chaves mestras de disco no aurora-vault."
+    responder: true
+    documentos_relevantes:
+      - 02_autenticacao_identidade.md
+      - 06_seguranca_criptografia.md
+    trechos_relevantes:
+      - fonte: 02_autenticacao_identidade.md
+        trecho: "A rotação automática das chaves privadas Ed25519 do emissor de identidade ocorre a cada 14 dias sem interrupção de serviço, mantendo a chave pública anterior válida apenas para verificação durante uma hora."
+        essencial: true
+      - fonte: 06_seguranca_criptografia.md
+        trecho: "As chaves mestras de criptografia de disco armazenadas no aurora-vault passam por cerimônia de recifragem semestral conduzida pelo comitê de segurança da informação."
+        essencial: true
+    fatos_esperados:
+      - "Chaves privadas Ed25519 do emissor de identidade rotacionam a cada 14 dias"
+      - "Chaves mestras de disco no aurora-vault passam por recifragem semestral"
+    observacao_experimental: "Pergunta composta com distrator 'rotação' em 09_observabilidade_telemetria.md (rotação de logs a cada 500 MB)."
+    anotador: Diego
+    revisor: Gabriel Alves
+    status_revisao: pendente_validacao_humana
+
+  - id: C02
+    perfil: composta
+    pergunta: "Qual é a diferença entre o prazo de retenção das cópias de backup em armazenamento imutável WORM, o prazo de expurgo dos metadados transitórios de auditoria e a retenção legal dos relatórios fiscais?"
+    responder: true
+    documentos_relevantes:
+      - 07_backup_recuperacao.md
+      - 08_auditoria_conformidade.md
+    trechos_relevantes:
+      - fonte: 07_backup_recuperacao.md
+        trecho: "Os artefatos de salvaguarda são transferidos para armazenamento objeto externo configurado em modo imutável WORM, onde permanecem sob retenção obrigatória por 90 dias."
+        essencial: true
+      - fonte: 08_auditoria_conformidade.md
+        trecho: "Metadados operacionais transitórios e envelopes de depuração técnica permanecem disponíveis para consulta imediata por 365 dias antes de sofrerem expurgo automatizado pelo coletor de retenção."
+        essencial: true
+      - fonte: 08_auditoria_conformidade.md
+        trecho: "Por outro lado, relatórios fiscais de bilhetagem e termos de consentimento de uso de bases acadêmicas possuem retenção legal obrigatória de 5 anos em arquivo morto auditável."
+        essencial: true
+    fatos_esperados:
+      - "Backups em armazenamento WORM: retenção por 90 dias"
+      - "Metadados transitórios de auditoria: expurgo após 365 dias"
+      - "Relatórios fiscais de bilhetagem: retenção legal de 5 anos"
+    observacao_experimental: "Exige recuperar 3 sentenças em 2 documentos enquanto 04_filas_mensageria.md atua como distrator (expurgo em 21 dias)."
+    anotador: Diego
+    revisor: João Victor Póvoa
+    status_revisao: pendente_validacao_humana
+
+  - id: C03
+    perfil: composta
+    pergunta: "Quais são as metas de RPO e RTO para recuperação de desastres regionais e qual é o orçamento máximo mensal de indisponibilidade não planejada previsto no SLA institucional?"
+    responder: true
+    documentos_relevantes:
+      - 07_backup_recuperacao.md
+      - 10_slas_disponibilidade.md
+    trechos_relevantes:
+      - fonte: 07_backup_recuperacao.md
+        trecho: "A arquitetura de replicação assíncrona garante um objetivo de ponto de recuperação RPO máximo de 15 minutos, limitando a perda potencial de ingestões recentes em caso de colapso do datacenter primário."
+        essencial: true
+      - fonte: 07_backup_recuperacao.md
+        trecho: "Em cenários de falha catastrófica regional, o procedimento automatizado de promoção da instância secundária assegura um objetivo de tempo de recuperação RTO de até 40 minutos."
+        essencial: true
+      - fonte: 10_slas_disponibilidade.md
+        trecho: "A infraestrutura garante disponibilidade mensal mínima de 99,95 por cento, o que equivale a um orçamento máximo tolerado de 21 minutos de indisponibilidade não planejada por mês."
+        essencial: true
+    fatos_esperados:
+      - "RPO máximo de 15 minutos"
+      - "RTO de até 40 minutos"
+      - "Orçamento máximo de 21 minutos de indisponibilidade não planejada por mês (99,95%)"
+    observacao_experimental: "Cruza métricas de continuidade (07) com disponibilidade contratual (10) dentro do limite top_k=5."
+    anotador: Gabriel Alves
+    revisor: Diego
+    status_revisao: pendente_validacao_humana
+
+  - id: C04
+    perfil: composta
+    pergunta: "Como a assinatura de compatibilidade vetorial é calculada no aurora-vectordb e quais mudanças de configuração obrigam o operador a reingerir toda a coleção documental no aurora-ingest?"
+    responder: true
+    documentos_relevantes:
+      - 03_banco_vetorial_indexacao.md
+      - 12_governanca_ingestao_dados.md
+    trechos_relevantes:
+      - fonte: 03_banco_vetorial_indexacao.md
+        trecho: "A assinatura de compatibilidade vetorial é calculada por um resumo SHA-256 que concatena o provedor, o endereço do serviço, o nome do modelo codificador e a dimensionalidade declarada."
+        essencial: true
+      - fonte: 12_governanca_ingestao_dados.md
+        trecho: "Se o operador alterar o modelo de embeddings, o endereço do provedor ou a quantidade de dimensões no YAML, é obrigatório reingerir toda a coleção documental antes de executar novas buscas vetoriais."
+        essencial: true
+    fatos_esperados:
+      - "Resumo SHA-256 concatenando provedor, endereço do serviço, modelo codificador e dimensionalidade"
+      - "Alteração de modelo de embeddings, endereço do provedor ou dimensões no YAML exige reingestão completa"
+    observacao_experimental: "Conecta a implementação interna da chave vetorial (03) com a regra operacional de governança (12)."
+    anotador: Gabriel Alves
+    revisor: João Victor Póvoa
+    status_revisao: pendente_validacao_humana
+
+  - id: C05
+    perfil: composta
+    pergunta: "Como funciona o endpoint HTTP de verificação rápida de saúde em relação ao uso do modelo de linguagem e como o utilitário de diagnóstico pré-voo impacta o consumo de tokens na bilhetagem?"
+    responder: true
+    documentos_relevantes:
+      - 09_observabilidade_telemetria.md
+      - 05_faturamento_cotas.md
+    trechos_relevantes:
+      - fonte: 09_observabilidade_telemetria.md
+        trecho: "A verificação rápida de integridade na rota HTTP de saúde executa apenas uma consulta leve de conectividade ao banco PostgreSQL, evitando acionar o modelo de linguagem para não gerar custo nem latência artificial."
+        essencial: true
+      - fonte: 05_faturamento_cotas.md
+        trecho: "Testes automatizados de diagnóstico executados pelo utilitário de verificação pré-voo consomem tokens reais do endpoint configurado e são contabilizados na cota de manutenção da infraestrutura."
+        essencial: true
+    fatos_esperados:
+      - "O endpoint HTTP de saúde testa apenas o PostgreSQL e não aciona o LLM"
+      - "O diagnóstico pré-voo faz chamada real aos modelos e debita tokens na cota de manutenção"
+    observacao_experimental: "Contrasta dois mecanismos de health-check em documentos diferentes (09 e 05), com distrator em 11_deploy_configuracao.md."
+    anotador: João Victor Póvoa
+    revisor: Diego
+    status_revisao: pendente_validacao_humana
+
+  - id: C06
+    perfil: composta
+    pergunta: "Quais portas de rede são utilizadas pelo proxy reverso Envoy de entrada, pelo daemon DNS interno do cluster e pelo exportador OpenTelemetry gRPC?"
+    responder: true
+    documentos_relevantes:
+      - 01_arquitetura_geral.md
+      - 09_observabilidade_telemetria.md
+    trechos_relevantes:
+      - fonte: 01_arquitetura_geral.md
+        trecho: "Toda a comunicação externa ingressa exclusivamente por um proxy reverso Envoy operando na porta 9443 com terminação criptográfica mútua e inspeção de cabeçalhos."
+        essencial: true
+      - fonte: 01_arquitetura_geral.md
+        trecho: "A descoberta de serviços dentro do cluster utiliza registros DNS estáticos resolvidos pelo daemon interno na porta 5353, eliminando dependências de registradores externos durante falhas de conectividade WAN."
+        essencial: true
+      - fonte: 09_observabilidade_telemetria.md
+        trecho: "As métricas coletadas e os rastros distribuídos são exportados continuamente via protocolo OpenTelemetry gRPC na porta 4317 para o coletor central da infraestrutura."
+        essencial: true
+    fatos_esperados:
+      - "Porta 9443 para o proxy reverso Envoy"
+      - "Porta 5353 para o daemon DNS interno"
+      - "Porta 4317 para o exportador OpenTelemetry gRPC"
+    observacao_experimental: "Exige recuperar três sentenças em dois documentos (01 e 09) com distratores de porta em 06 (5432) e 11 (8000)."
+    anotador: João Victor Póvoa
+    revisor: Gabriel Alves
+    status_revisao: pendente_validacao_humana
+
+  # ==========================================================================
+  # PERFIL 4: SEM RESPOSTA NA BASE (N01 a N06) — 3 Near-Miss + 3 Fora de Domínio
+  # ==========================================================================
+  - id: N01
+    perfil: sem_resposta
+    pergunta: "Quais são os parâmetros de resolução em DPI e o idioma padrão do módulo de OCR do aurora-ingest para extrair tabelas de arquivos PDF escaneados?"
+    responder: false
+    documentos_relevantes: []
+    trechos_relevantes: []
+    fatos_esperados:
+      - "Abstenção explícita: a base não possui configuração de DPI/idioma de OCR (ou informar que o aurora-ingest aceita apenas .txt/.md UTF-8 e bloqueia arquivos que dependam de OCR)."
+    observacao_experimental: "Near-miss 1: cita aurora-ingest e OCR (termos presentes em 12_governanca_ingestao_dados.md), mas pede parâmetros inexistentes de uma funcionalidade bloqueada."
+    anotador: Diego
+    revisor: Gabriel Alves
+    status_revisao: pendente_validacao_humana
+
+  - id: N02
+    perfil: sem_resposta
+    pergunta: "Quais valores de m e ef_construction são recomendados para calibrar o índice aproximado HNSW no aurora-vectordb em coleções de até 50000 fragmentos?"
+    responder: false
+    documentos_relevantes: []
+    trechos_relevantes: []
+    fatos_esperados:
+      - "Abstenção explícita: a base não contém parâmetros HNSW (m ou ef_construction), pois até 50000 fragmentos o aurora-vectordb utiliza busca exata sem índice ANN."
+    observacao_experimental: "Near-miss 2: alta sobreposição lexical com 03_banco_vetorial_indexacao.md ('aurora-vectordb', '50000 fragmentos', 'índice aproximado'), testando se o LLM inventa parâmetros HNSW."
+    anotador: Gabriel Alves
+    revisor: João Victor Póvoa
+    status_revisao: pendente_validacao_humana
+
+  - id: N03
+    perfil: sem_resposta
+    pergunta: "Qual é o percentual de desconto concedido no aurora-billing para laboratórios que aderem ao plano Estudantil Básico com pagamento anual antecipado?"
+    responder: false
+    documentos_relevantes: []
+    trechos_relevantes: []
+    fatos_esperados:
+      - "Abstenção explícita: as evidências não mencionam plano Estudantil Básico nem desconto por pagamento anual antecipado."
+    observacao_experimental: "Near-miss 3: recupera trechos de 05_faturamento_cotas.md e 10_slas_disponibilidade.md (crédito de 12% por SLA), avaliando se o LLM confunde multa de SLA com desconto comercial."
+    anotador: João Victor Póvoa
+    revisor: Diego
+    status_revisao: pendente_validacao_humana
+
+  - id: N04
+    perfil: sem_resposta
+    pergunta: "Qual foi a escalação titular da seleção brasileira na final da Copa do Mundo de 2002 disputada em Yokohama?"
+    responder: false
+    documentos_relevantes: []
+    trechos_relevantes: []
+    fatos_esperados:
+      - "Abstenção explícita: informar que as evidências fornecidas na base não contêm informações para responder à pergunta."
+    observacao_experimental: "Fora do domínio 1 (esportes): verifica se o embedding retorna candidatos de baixo score e se o LLM respeita a restrição de responder somente com base nas evidências."
+    anotador: Diego
+    revisor: João Victor Póvoa
+    status_revisao: pendente_validacao_humana
+
+  - id: N05
+    perfil: sem_resposta
+    pergunta: "Qual é a temperatura ideal do forno e o tempo de fermentação natural para assar um panetone artesanal de frutas cristalizadas?"
+    responder: false
+    documentos_relevantes: []
+    trechos_relevantes: []
+    fatos_esperados:
+      - "Abstenção explícita: informar que a base documental não possui evidências sobre preparo de panetone."
+    observacao_experimental: "Fora do domínio 2 (culinária): vocabulário técnico zero; mede se conectivos em português ('de', 'para', 'um') ativam TF-IDF/BM25 sem stopwords."
+    anotador: Gabriel Alves
+    revisor: Diego
+    status_revisao: pendente_validacao_humana
+
+  - id: N06
+    perfil: sem_resposta
+    pergunta: "Como funciona o mecanismo bioquímico de fixação noturna de carbono na fotossíntese CAM de plantas suculentas?"
+    responder: false
+    documentos_relevantes: []
+    trechos_relevantes: []
+    fatos_esperados:
+      - "Abstenção explícita: informar que a base não traz evidências sobre fotossíntese CAM ou biologia vegetal."
+    observacao_experimental: "Fora do domínio 3 (biologia): valida robustez de abstenção quando nenhum trecho recuperado possui relação com o tema."
+    anotador: João Victor Póvoa
+    revisor: Gabriel Alves
+    status_revisao: pendente_validacao_humana

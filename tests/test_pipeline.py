@@ -112,3 +112,48 @@ def test_bypass_does_not_instantiate_module(services, monkeypatch):
     services.settings = with_modules(services.settings, "tfidf")
     monkeypatch.setitem(REGISTRY, "hyde", fail)
     assert Pipeline(services).run(Envelope(question="RAG")).evidence
+
+
+@pytest.mark.parametrize(
+    ("strategy", "weights"),
+    [
+        ("rrf", {}),
+        ("weighted_rrf", {"bm25": 1.0, "embedding": 2.0}),
+        ("convex", {}),
+        ("dbsf", {"bm25": 1.0, "embedding": 1.0}),
+    ],
+)
+def test_pipeline_hybrid_strategies_emit_telemetry_and_preserve_contract(
+    services, strategy, weights
+):
+    services.settings = with_modules(services.settings, "bm25", "embedding", "hybrid")
+    services.settings.hybrid.strategy = strategy
+    services.settings.hybrid.weights = weights
+    services.settings.pipeline.top_k = 2
+
+    result = Pipeline(services).run(
+        Envelope(question="RAG documentos", attributes={"grupo": "G7"})
+    )
+    trace_by_module = {entry["module"]: entry for entry in result.trace}
+
+    assert trace_by_module["hybrid"]["status"] == "executed"
+    assert result.attributes["grupo"] == "G7"
+    telemetry = result.attributes["hybrid"]
+    assert telemetry["schema"] == "g7-hybrid/1"
+    assert telemetry["strategy"] == strategy
+    assert len(telemetry["ranking"]) >= len(result.evidence)
+    assert len(result.evidence) <= 2
+    assert "hybrid" in result.evidence[0].scores
+    assert result.model_dump_json()
+
+
+def test_pipeline_without_hybrid_uses_round_robin_and_leaves_hybrid_bypassed(services):
+    services.settings = with_modules(services.settings, "tfidf", "bm25", "embedding")
+    result = Pipeline(services).run(Envelope(question="RAG documentos"))
+    trace_by_module = {entry["module"]: entry for entry in result.trace}
+
+    assert trace_by_module["hybrid"]["status"] == "bypass"
+    assert "hybrid" not in result.attributes
+    assert result.evidence
+    assert "hybrid" not in result.evidence[0].scores
+
