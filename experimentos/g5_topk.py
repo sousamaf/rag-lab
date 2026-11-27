@@ -1,6 +1,6 @@
 """G5: baseline (BM25 de referência) × modo ativo (variante escolhida) variando o top_k.
 
-Método pedido pelo professor (como no G7): rodar a baseline com o valor padrão, variar o
+Método pedido pelo professor na aula: rodar a baseline com o valor padrão, variar o
 parâmetro (aqui `pipeline.top_k` = 5/7/10/12, limite = `candidate_k` 12), ativar o modo e repetir
 os mesmos valores, comparando numa tabela. A baseline é o BM25 de referência (IDF lucene,
 k1=1.5, b=0.75); o modo ativo usa a combinação de k1/b/IDF escolhida na metade "treino" das

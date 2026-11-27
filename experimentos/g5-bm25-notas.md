@@ -106,8 +106,8 @@ Igual à baseline na maioria das perguntas. Mudam: **S5** (baseline 2; okapi 3; 
 
 ## Baseline × modo ativo variando o `top_k` (método de avaliação do professor)
 
-Como no G7: rodar a baseline com o valor padrão, variar o parâmetro e repetir com o modo ativo, na
-mesma tabela. Script: [g5_topk.py](g5_topk.py), saída em `data/results/g5/topk/`.
+Método de avaliação apresentado na aula: rodar a baseline com o valor padrão, variar o parâmetro e
+repetir com o modo ativo, na mesma tabela. Script: [g5_topk.py](g5_topk.py), saída em `data/results/g5/topk/`.
 
 - **Baseline** = BM25 de referência (IDF `lucene`, `k1=1.5`, `b=0.75`, `min_idf=0`).
 - **Parâmetro variado:** `pipeline.top_k` ∈ {5, 7, 10, 12} (o limite é 12 porque `candidate_k`
@@ -158,15 +158,15 @@ Mudar a ordem das evidências conta como mudança, mesmo sem alterar o conjunto.
 ## Geração, citações, latência e chamadas
 
 [g5_geracao.py](g5_geracao.py) executa o pipeline completo com o LLM do YAML para as configs
-`experimentos/g5-configs/baseline.yaml` e `ativo.yaml`, no mesmo molde das tabelas T3 e T4 do G7:
+`experimentos/g5-configs/baseline.yaml` e `ativo.yaml` e grava, em `data/results/g5/geracao/`:
 
-- **T3 — geração e citações:** taxa de respostas com citação `[n]`, sintaxe válida (n entre 1 e o
-  número de evidências), precisão das fontes citadas por documento e por trecho, cobertura
-  lexical dos fatos de `deve_conter`, abstenção nas perguntas sem resposta e o status da rubrica
-  humana de fidelidade (0–2).
-- **T4 — latência e chamadas:** mediana e p95 do tempo do BM25, da geração e total, e o número de
+- **`geracao_citacoes`:** fração de respostas com citação `[n]`, citações com número válido (entre
+  1 e o número de evidências), precisão das fontes citadas por documento e por trecho, cobertura
+  das palavras dos fatos de `deve_conter` e recusas nas perguntas sem resposta.
+- **`latencia_chamadas`:** mediana e p95 do tempo do BM25, da geração e total, e o número de
   chamadas ao chat e aos embeddings.
-- `anotacao_humana.csv`: modelo para a rubrica de fidelidade e a conferência manual das citações.
+- **`anotacao_humana.csv`:** as respostas com colunas vazias (`fiel_as_fontes`,
+  `citacoes_corretas`, em s/n) para a conferência manual.
 
 ## Conclusões (e limites)
 
