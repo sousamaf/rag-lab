@@ -9,8 +9,8 @@ recuperação, não o LLM. Saída em data/results/g5/ (ignorada pelo Git):
   - ablacao.json: BM25 desligado (`bypass` no trace).
 
     export DATABASE_URL=... RAG_TAG_CLASSIFIER=terms
-    rag-lab --config config/lab.local.yaml ingest data/documents
-    python experimentos/g5_bm25.py [--config config/lab.local.yaml]
+    rag-lab --config experimentos/g5-configs/baseline.yaml ingest experimentos/g5-corpus
+    python experimentos/g5_bm25.py [--config experimentos/g5-configs/baseline.yaml]
 """
 
 from __future__ import annotations
@@ -43,9 +43,11 @@ VARIANTS = {  # variantes nomeadas: envelopes completos são salvos
     "b-1": {"b": 1.0},
     "k1-0.5": {"k1": 0.5},
     "k1-3": {"k1": 3.0},
+    "min-idf-1.0": {"min_idf": 1.0},
+    "min-idf-1.5": {"min_idf": 1.5},
 }
 GRID = {"k1": [0.5, 0.9, 1.2, 1.5, 2.0, 3.0], "b": [0.0, 0.25, 0.5, 0.75, 1.0]}
-IDFS = ["lucene", "okapi"]
+IDFS = ["lucene", "okapi", "classic"]
 PROFILES = ["literal", "semantica", "composta", "sem_resposta"]
 
 
@@ -157,7 +159,7 @@ def summarize(per_question: dict[str, dict], questions: list[dict]) -> dict:
 
 def main() -> None:
     parser = argparse.ArgumentParser()
-    parser.add_argument("--config", default="config/lab.local.yaml")
+    parser.add_argument("--config", default="experimentos/g5-configs/baseline.yaml")
     parser.add_argument("--gold", default=str(ROOT / "experimentos/g5_gold.json"))
     parser.add_argument("--out", default=str(ROOT / "data/results/g5"))
     args = parser.parse_args()
@@ -237,7 +239,7 @@ def main() -> None:
         writer.writerows(question_rows)
 
     print("\n== Posição do 1º relevante no top-5 (- = não apareceu) ==")
-    print(f"{'pergunta':<9}" + "".join(f"{v:>11}" for v in VARIANTS))
+    print(f"{'pergunta':<9}" + "".join(f"{v:>13}" for v in VARIANTS))
     for q in questions:
         if q["relevantes"]:
             cells = [
@@ -248,7 +250,7 @@ def main() -> None:
                 )
                 for v in VARIANTS
             ]
-            print(f"{q['id']:<9}" + "".join(f"{('-' if c is None else c)!s:>11}" for c in cells))
+            print(f"{q['id']:<9}" + "".join(f"{('-' if c is None else c)!s:>13}" for c in cells))
 
     # 2) Varredura k1 × b × IDF (só métricas; sem salvar envelopes).
     rows = []
