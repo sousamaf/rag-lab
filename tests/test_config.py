@@ -112,3 +112,14 @@ def test_invalid_hybrid_config_rejected(config_data, hybrid_cfg):
     with pytest.raises(ValidationError):
         Settings.model_validate(config_data)
 
+
+def test_bm25_options_have_defaults_and_are_validated(config_data):
+    config_data["tagging_method"] = "llm"
+    config_data["database_url"] = "postgresql://rag:rag@localhost/rag"
+    config_data["modules"]["bm25"] = {"enabled": True}
+    bm25 = Settings.model_validate(config_data).modules["bm25"]
+    assert (bm25.k1, bm25.b, bm25.idf) == (1.5, 0.75, "lucene")
+    for invalid in ({"b": 1.5}, {"k1": -1}, {"idf": "x"}, {"typo": 1}):
+        config_data["modules"]["bm25"] = {"enabled": True, **invalid}
+        with pytest.raises(ValidationError):
+            Settings.model_validate(config_data)

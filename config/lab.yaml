@@ -33,7 +33,7 @@ modules:
   hyde: {enabled: false}
   decomposicao: {enabled: false}
   tfidf: {enabled: false}
-  bm25: {enabled: false}
+  bm25: {enabled: false, k1: 1.5, b: 0.75, idf: lucene} # idf: lucene | okapi
   embedding: {enabled: true}
   hybrid: {enabled: false}
   reranking: {enabled: false}

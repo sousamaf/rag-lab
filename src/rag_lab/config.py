@@ -17,6 +17,7 @@ from pydantic import (
     StrictBool,
     StrictFloat,
     StrictInt,
+    field_validator,
     model_validator,
 )
 
@@ -68,6 +69,14 @@ class Switch(StrictModel):
     enabled: StrictBool
 
 
+class BM25Switch(Switch):
+    """BM25 aceita parâmetros opcionais; os padrões reproduzem a referência (Lucene)."""
+
+    k1: float = Field(default=1.5, ge=0, le=10)
+    b: float = Field(default=0.75, ge=0, le=1)
+    idf: Literal["lucene", "okapi"] = "lucene"
+
+
 class PipelineConfig(StrictModel):
     top_k: int = Field(default=5, ge=1, le=100)
     candidate_k: int = Field(default=12, ge=1, le=100)
@@ -91,6 +100,13 @@ class Settings(StrictModel):
     modules: dict[str, Switch]
     tagging_method: TaggingMethod = "llm"
     hybrid: HybridConfig = Field(default_factory=HybridConfig)
+
+    @field_validator("modules", mode="before")
+    @classmethod
+    def parse_bm25_options(cls, modules):
+        if isinstance(modules, dict) and isinstance(modules.get("bm25"), dict):
+            modules = {**modules, "bm25": BM25Switch.model_validate(modules["bm25"])}
+        return modules
 
     @model_validator(mode="after")
     def validate_pipeline(self) -> Settings:
