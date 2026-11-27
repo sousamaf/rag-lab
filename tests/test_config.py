@@ -118,8 +118,34 @@ def test_bm25_options_have_defaults_and_are_validated(config_data):
     config_data["database_url"] = "postgresql://rag:rag@localhost/rag"
     config_data["modules"]["bm25"] = {"enabled": True}
     bm25 = Settings.model_validate(config_data).modules["bm25"]
-    assert (bm25.k1, bm25.b, bm25.idf) == (1.5, 0.75, "lucene")
-    for invalid in ({"b": 1.5}, {"k1": -1}, {"idf": "x"}, {"typo": 1}):
+    assert (bm25.k1, bm25.b, bm25.idf, bm25.min_idf) == (1.5, 0.75, "lucene", 0)
+    config_data["modules"]["bm25"] = {"enabled": True, "idf": "classic"}
+    assert Settings.model_validate(config_data).modules["bm25"].idf == "classic"
+    for invalid in ({"b": 1.5}, {"k1": -1}, {"idf": "x"}, {"min_idf": -1}, {"typo": 1}):
         config_data["modules"]["bm25"] = {"enabled": True, **invalid}
         with pytest.raises(ValidationError):
             Settings.model_validate(config_data)
+
+
+def test_bm25_options_survive_model_dump_roundtrip(config_data):
+    config_data["tagging_method"] = "llm"
+    config_data["database_url"] = "postgresql://rag:rag@localhost/rag"
+    config_data["modules"]["bm25"] = {
+        "enabled": True,
+        "k1": 2.0,
+        "b": 0.1,
+        "idf": "okapi",
+        "min_idf": 1.2,
+    }
+    settings = Settings.model_validate(config_data)
+    dumped = settings.model_dump()
+    assert dumped["modules"]["bm25"] == {
+        "enabled": True,
+        "k1": 2.0,
+        "b": 0.1,
+        "idf": "okapi",
+        "min_idf": 1.2,
+    }
+    assert dumped["modules"]["tfidf"] == {"enabled": False}
+    again = Settings.model_validate(dumped).modules["bm25"]
+    assert (again.k1, again.b, again.idf, again.min_idf) == (2.0, 0.1, "okapi", 1.2)

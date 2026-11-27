@@ -14,6 +14,7 @@ from pydantic import (
     BaseModel,
     ConfigDict,
     Field,
+    SerializeAsAny,
     StrictBool,
     StrictFloat,
     StrictInt,
@@ -74,7 +75,8 @@ class BM25Switch(Switch):
 
     k1: float = Field(default=1.5, ge=0, le=10)
     b: float = Field(default=0.75, ge=0, le=1)
-    idf: Literal["lucene", "okapi"] = "lucene"
+    idf: Literal["lucene", "okapi", "classic"] = "lucene"
+    min_idf: float = Field(default=0, ge=0, le=20)  # 0 = não ignora nenhum termo da consulta
 
 
 class PipelineConfig(StrictModel):
@@ -97,7 +99,7 @@ class Settings(StrictModel):
     llm: LLMConfig
     embeddings: EmbeddingConfig
     pipeline: PipelineConfig
-    modules: dict[str, Switch]
+    modules: dict[str, SerializeAsAny[Switch]]
     tagging_method: TaggingMethod = "llm"
     hybrid: HybridConfig = Field(default_factory=HybridConfig)
 
