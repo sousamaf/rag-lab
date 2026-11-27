@@ -697,7 +697,7 @@ def load_run_records(
             continue
         manifest_path = d / "manifest.json"
         manifest = (
-            json.loads(manifest_path.read_text(encoding="utf-8"))
+            json.loads(manifest_path.read_text(encoding="utf-8-sig"))
             if manifest_path.exists()
             else None
         )
@@ -711,7 +711,7 @@ def load_run_records(
         )
 
         for jf in json_files:
-            raw = json.loads(jf.read_text(encoding="utf-8"))
+            raw = json.loads(jf.read_text(encoding="utf-8-sig"))
             if not isinstance(raw, dict):
                 continue
 

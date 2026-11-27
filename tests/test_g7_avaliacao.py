@@ -689,3 +689,67 @@ def test_end_to_end_rodar_and_avaliar_generates_t1_to_t6_and_human_csv(services,
         rows = list(csv.DictReader(f))
     assert len(rows) == 3
     assert {r["question_id"] for r in rows} == {"L02", "S02", "N01"}
+
+
+def test_avaliar_reads_utf8_bom_json_and_rodar_rrf_k_override(services, tmp_path):
+    gabarito_path = REPO_ROOT / "experiments" / "g7" / "perguntas_gabarito.yaml"
+    config_path = REPO_ROOT / "experiments" / "g7" / "configs" / "e2_rrf_k60_bm25_emb.yaml"
+    corpus_dir = REPO_ROOT / "experiments" / "g7" / "corpus"
+
+    # 1) Override --rrf-k válido e inválido
+    bad_args = rodar.build_parser().parse_args(
+        [
+            "--config",
+            str(config_path),
+            "--gabarito",
+            str(gabarito_path),
+            "--corpus-dir",
+            str(corpus_dir),
+            "--out-dir",
+            str(tmp_path / "bad"),
+            "--rrf-k",
+            "0",
+            "--dry-run",
+        ]
+    )
+    with pytest.raises(ValueError, match="--rrf-k"):
+        rodar.run_collection(bad_args, services_override=services)
+
+    run_dir = tmp_path / "runs_rrf_override"
+    args_ok = rodar.build_parser().parse_args(
+        [
+            "--config",
+            str(config_path),
+            "--gabarito",
+            str(gabarito_path),
+            "--corpus-dir",
+            str(corpus_dir),
+            "--out-dir",
+            str(run_dir),
+            "--run-id",
+            "override_k15",
+            "--ids",
+            "L02",
+            "--rrf-k",
+            "15",
+        ]
+    )
+    manifest = rodar.run_collection(args_ok, services_override=services)
+    assert manifest["overrides"]["rrf_k"] == 15
+    assert manifest["config_effective"]["pipeline"]["rrf_k"] == 15
+
+    # 2) Rescreve manifest.json e envelope JSON com UTF-8 BOM (encoding='utf-8-sig')
+    run_path = run_dir / "override_k15"
+    manifest_file = run_path / "manifest.json"
+    env_file = run_path / "envelopes" / "L02__rep1.json"
+    manifest_file.write_text(manifest_file.read_text(encoding="utf-8"), encoding="utf-8-sig")
+    env_file.write_text(env_file.read_text(encoding="utf-8"), encoding="utf-8-sig")
+
+    import yaml
+
+    perguntas = yaml.safe_load(gabarito_path.read_text(encoding="utf-8"))["perguntas"]
+    q_by_id = {str(q["id"]): q for q in perguntas}
+    records = avaliar.load_run_records(run_dir, None, q_by_id)
+    assert len(records) == 1
+    assert records[0]["question_id"] == "L02"
+    assert records[0]["envelope"]["attributes"]["hybrid"]["params"]["rrf_k"] == 15

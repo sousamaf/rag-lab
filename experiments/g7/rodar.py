@@ -262,6 +262,7 @@ def build_manifest(
     reps: int,
     llm_override: str | None = None,
     embedding_override: str | None = None,
+    rrf_k_override: int | None = None,
     dry_run: bool = False,
     uv_lock_path: Path | None = None,
     ollama_probe: bool = True,
@@ -313,6 +314,7 @@ def build_manifest(
         "overrides": {
             "llm_model": llm_override,
             "embedding_model": embedding_override,
+            "rrf_k": rrf_k_override,
         },
         "uv_lock_sha256": uv_sha,
         "gabarito_path": gabarito_path.as_posix(),
@@ -342,6 +344,9 @@ def run_collection(
 ) -> dict[str, Any]:
     if args.reps < 1:
         raise ValueError("--reps deve ser maior ou igual a 1.")
+    rrf_k_override = getattr(args, "rrf_k", None)
+    if rrf_k_override is not None and rrf_k_override < 1:
+        raise ValueError("--rrf-k deve ser maior ou igual a 1.")
     config_path = configuration_path(args.config)
     if not config_path.exists():
         raise ValueError(f"Arquivo de configuração não encontrado: {config_path}")
@@ -351,6 +356,8 @@ def run_collection(
         settings.llm.model = args.llm_model
     if args.embedding_model:
         settings.embeddings.model = args.embedding_model
+    if rrf_k_override is not None:
+        settings.pipeline.rrf_k = rrf_k_override
 
     gabarito_data = load_gabarito(args.gabarito)
     selected_questions = filter_questions(
@@ -372,6 +379,7 @@ def run_collection(
         reps=args.reps,
         llm_override=args.llm_model,
         embedding_override=args.embedding_model,
+        rrf_k_override=rrf_k_override,
         dry_run=bool(args.dry_run),
         ollama_probe=services_override is None,
     )
@@ -419,7 +427,7 @@ def run_collection(
 
             if resume_enabled and out_file.exists():
                 try:
-                    existing = json.loads(out_file.read_text(encoding="utf-8"))
+                    existing = json.loads(out_file.read_text(encoding="utf-8-sig"))
                     if isinstance(existing, dict) and isinstance(existing.get("envelope"), dict):
                         Envelope.model_validate(existing["envelope"])
                         completed += 1
@@ -524,6 +532,12 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--llm-model", help="Override opcional em memória para llm.model")
     parser.add_argument(
         "--embedding-model", help="Override opcional em memória para embeddings.model"
+    )
+    parser.add_argument(
+        "--rrf-k",
+        type=int,
+        default=None,
+        help="Override opcional em memória para pipeline.rrf_k (>= 1)",
     )
     parser.add_argument(
         "--resume",
