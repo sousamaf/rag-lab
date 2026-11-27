@@ -1,0 +1,5 @@
+BM25 é uma função de ranqueamento lexical usada em motores de busca. Ela pontua cada documento pelos termos da consulta que aparecem nele.
+O parâmetro k1 controla a saturação da frequência do termo: valores altos fazem repetições continuarem aumentando a pontuação.
+O parâmetro b controla a normalização pelo tamanho do documento: b igual a zero ignora o comprimento e b igual a um normaliza totalmente.
+O IDF mede a raridade de um termo no corpus; termos raros têm peso maior que termos comuns.
+Em corpora muito pequenos, o IDF clássico pode ficar negativo para termos que aparecem em mais da metade dos documentos.

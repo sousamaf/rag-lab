@@ -1,0 +1,4 @@
+Para avaliar um recuperador usamos recall em k, que mede quantos trechos relevantes aparecem entre os k primeiros resultados.
+Também observamos a posição do primeiro resultado relevante e se a resposta cita corretamente as fontes.
+Comparar técnicas exige manter o mesmo corpus e as mesmas perguntas, alterando uma variável por vez.
+Perguntas sem resposta na base servem para verificar se o sistema reconhece a falta de evidências.

@@ -1,0 +1,5 @@
+O tamanho do trecho afeta diretamente a recuperação.
+Trechos curtos são precisos, mas perdem o contexto necessário para responder à pergunta.
+Trechos longos carregam mais contexto, porém diluem o termo buscado entre muitas outras palavras e recebem pontuação menor quando o comprimento do documento é normalizado, mesmo que contenham a resposta exata.
+A janela de sentenças recupera uma sentença e anexa as vizinhas para devolver mais contexto ao modelo de linguagem.
+Sobreposição entre trechos evita que uma informação seja cortada exatamente na fronteira entre dois pedaços.

@@ -1,0 +1,5 @@
+O PostgreSQL é um banco de dados relacional de código aberto.
+A extensão pgvector adiciona o tipo vetor e operadores de distância ao PostgreSQL, permitindo guardar embeddings junto dos textos.
+Um índice de banco de dados, como a árvore B, acelera consultas por igualdade e faixa de valores, mas não substitui um índice invertido para busca de palavras em texto livre.
+Transações garantem que a substituição de um documento seja atômica.
+Consultas SQL parametrizadas evitam injeção de comandos.

@@ -1,0 +1,6 @@
+Tokenização é a etapa que quebra o texto em termos antes de qualquer cálculo de relevância.
+Stopwords são palavras muito frequentes, como artigos e preposições, que quase não ajudam a distinguir um documento de outro.
+Em português, a remoção de acentos faz com que "informação" e "informacao" sejam tratados como o mesmo termo, o que ajuda quando o usuário digita sem acento, mas pode juntar palavras diferentes.
+Stemming reduz as palavras ao radical, de modo que "recuperação", "recuperar" e "recuperado" caiam no mesmo termo de índice; o custo é perder a precisão de algumas palavras.
+Letras maiúsculas e minúsculas normalmente são unificadas.
+Siglas e códigos de erro, como ERR-404, podem ser quebrados em pedaços se o tokenizador separar por hífen.
