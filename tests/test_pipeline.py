@@ -77,6 +77,18 @@ def test_tags_follow_chunk_id_through_fusion_and_context_steps(services, hybrid)
     assert evidence["c"]["metadata"]["tags"] == []
 
 
+def test_sentence_window_metrics_reach_response_and_keep_other_attributes(services):
+    services.settings = with_modules(services.settings, "embedding", "sentence")
+    result = Pipeline(services).run(Envelope(question="RAG", attributes={"grupo": "G9"}))
+    payload = json.loads(result.model_dump_json())
+    assert payload["attributes"]["grupo"] == "G9"
+    assert payload["attributes"]["sentence_window"]["overlapping_pairs"] == 1
+
+    services.settings = with_modules(services.settings, "embedding")
+    bypassed = Pipeline(services).run(Envelope(question="RAG"))
+    assert "sentence_window" not in bypassed.attributes
+
+
 def test_context_budget_and_source_numbers_match(services):
     services.settings = with_modules(services.settings, "embedding")
     services.settings.pipeline.max_context_chars = 100

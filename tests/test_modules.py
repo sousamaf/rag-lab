@@ -33,14 +33,18 @@ def test_sentence_window_keeps_document_boundary(services):
     assert "Embeddings" not in result["evidence"][0]["context_text"]
 
 
-def run_window(services, chunk_indexes, radius):
+def window_payload(services, chunk_indexes, radius):
     """Executa a janela sobre trechos do MemoryStore: d1 = [a, b] e d2 = [c]."""
     services.settings.pipeline.sentence_radius = radius
     payload = Envelope(question="RAG").model_dump()
     payload["evidence"] = [
         Evidence(**services.store.chunks[i].model_dump()).model_dump() for i in chunk_indexes
     ]
-    return SentenceWindow().run(payload, services)["evidence"]
+    return SentenceWindow().run(payload, services)
+
+
+def run_window(services, chunk_indexes, radius):
+    return window_payload(services, chunk_indexes, radius)["evidence"]
 
 
 def test_sentence_window_radius_zero_keeps_only_the_sentence(services):
@@ -68,6 +72,32 @@ def test_sentence_window_neighbors_do_not_repeat_sentences(services):
     sentences = [chunk.text for chunk in services.store.chunks[:2]]
     for sentence in sentences:
         assert sum(sentence in item["context_text"] for item in evidence) == 1
+
+
+def test_sentence_window_metrics_count_overlap_only_in_same_document(services):
+    payload = window_payload(services, [0, 1, 2], radius=1)
+    metrics = payload["attributes"]["sentence_window"]
+    assert metrics == {
+        "radius": 1,
+        "evidence_count": 3,
+        "original_chars": sum(len(item["text"]) for item in payload["evidence"]),
+        "window_chars": sum(len(item["context_text"]) for item in payload["evidence"]),
+        "overlapping_pairs": 1,
+    }
+    assert metrics["window_chars"] > metrics["original_chars"]
+
+
+def test_sentence_window_metrics_radius_zero_has_no_expansion(services):
+    metrics = window_payload(services, [0, 1, 2], radius=0)["attributes"]["sentence_window"]
+    assert metrics["window_chars"] == metrics["original_chars"]
+    assert metrics["overlapping_pairs"] == 0
+
+
+def test_sentence_window_metrics_consider_only_top_k(services):
+    services.settings.pipeline.top_k = 1
+    metrics = window_payload(services, [0, 1], radius=1)["attributes"]["sentence_window"]
+    assert metrics["evidence_count"] == 1
+    assert metrics["overlapping_pairs"] == 0
 
 
 @pytest.mark.parametrize("module", [TFIDF, BM25])
