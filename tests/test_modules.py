@@ -33,6 +33,43 @@ def test_sentence_window_keeps_document_boundary(services):
     assert "Embeddings" not in result["evidence"][0]["context_text"]
 
 
+def run_window(services, chunk_indexes, radius):
+    """Executa a janela sobre trechos do MemoryStore: d1 = [a, b] e d2 = [c]."""
+    services.settings.pipeline.sentence_radius = radius
+    payload = Envelope(question="RAG").model_dump()
+    payload["evidence"] = [
+        Evidence(**services.store.chunks[i].model_dump()).model_dump() for i in chunk_indexes
+    ]
+    return SentenceWindow().run(payload, services)["evidence"]
+
+
+def test_sentence_window_radius_zero_keeps_only_the_sentence(services):
+    [item] = run_window(services, [0], radius=0)
+    assert item["context_text"] == item["text"]
+
+
+def test_sentence_window_large_radius_stays_in_document(services):
+    [item] = run_window(services, [0], radius=10)
+    assert item["context_text"] == "RAG recupera documentos relevantes. BM25 utiliza busca lexical."
+
+
+def test_sentence_window_preserves_original_text(services):
+    original = [chunk.text for chunk in services.store.chunks]
+    evidence = run_window(services, [0, 1, 2], radius=1)
+    assert [item["text"] for item in evidence] == original
+
+
+@pytest.mark.xfail(
+    strict=True,
+    reason="Problema conhecido: janelas de sentenças vizinhas repetem texto no contexto.",
+)
+def test_sentence_window_neighbors_do_not_repeat_sentences(services):
+    evidence = run_window(services, [0, 1], radius=1)
+    sentences = [chunk.text for chunk in services.store.chunks[:2]]
+    for sentence in sentences:
+        assert sum(sentence in item["context_text"] for item in evidence) == 1
+
+
 @pytest.mark.parametrize("module", [TFIDF, BM25])
 def test_lexical_empty_and_unmatched_queries(module, services):
     payload = Envelope(question="xyz", queries=["xyz"]).model_dump()
