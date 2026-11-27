@@ -3,6 +3,10 @@
 | Arquivo | Descrição |
 | --- | --- |
 | [exp01.py](exp01.py) | Compara o classificador por termos com o classificador por LLM nos mesmos chunks e com o mesmo catálogo. Mede latência e concordância entre métodos. Com gabarito, mede também a qualidade da classificação. |
+| [g5_bm25.py](g5_bm25.py) | G5 (BM25): compara variantes e uma grade de `k1`, `b` e IDF com gabarito por trecho; recall por trecho e documento, MRR, latência, repetição e ablação. |
+| [g5_topk.py](g5_topk.py) | G5 (BM25): baseline × modo ativo variando `top_k` (5/7/10/12) e sensibilidade dos parâmetros do YAML. |
+| [g5_geracao.py](g5_geracao.py) | G5 (BM25): tabelas de geração e citações (T3) e de latência e chamadas (T4) para baseline e modo ativo, com modelo de anotação humana. |
+| [g5-bm25-notas.md](g5-bm25-notas.md) | G5: corpus versionado, protocolo, resultados, casos em que piorou e decisão. Gabarito: [g5_gold.json](g5_gold.json); configs: [g5-configs/](g5-configs/). |
 
 ## Experimento 01
 
