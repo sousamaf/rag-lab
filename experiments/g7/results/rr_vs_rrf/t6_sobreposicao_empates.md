@@ -1,0 +1,34 @@
+# Tabela T6 — Sobreposição (Jaccard Top-12) e Empates na Fronteira
+
+| config | perfil | n_consultas | jaccard_bm25_embedding | jaccard_tfidf_bm25 | jaccard_tfidf_embedding | in_all_media | fused_count_media | boundary_tie_count | boundary_tie_rate |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| e1_rr_bm25_emb | TODOS | 24 | 0.2091 | - | - | 3.958 | 20.042 | 0 | 0.0 |
+| e1_rr_bm25_emb | literal | 6 | 0.2137 | - | - | 4.167 | 19.833 | 0 | 0.0 |
+| e1_rr_bm25_emb | semantica | 6 | 0.1437 | - | - | 3.0 | 21.0 | 0 | 0.0 |
+| e1_rr_bm25_emb | composta | 6 | 0.3571 | - | - | 6.167 | 17.833 | 0 | 0.0 |
+| e1_rr_bm25_emb | sem_resposta | 6 | 0.1217 | - | - | 2.5 | 21.5 | 0 | 0.0 |
+| e1_rr_todos | TODOS | 24 | 0.2091 | 0.6506 | 0.2192 | 3.792 | 22.375 | 0 | 0.0 |
+| e1_rr_todos | literal | 6 | 0.2137 | 0.7011 | 0.2298 | 4.0 | 21.667 | 0 | 0.0 |
+| e1_rr_todos | semantica | 6 | 0.1437 | 0.6048 | 0.1551 | 2.833 | 23.667 | 0 | 0.0 |
+| e1_rr_todos | composta | 6 | 0.3571 | 0.7255 | 0.3702 | 6.0 | 19.5 | 0 | 0.0 |
+| e1_rr_todos | sem_resposta | 6 | 0.1217 | 0.571 | 0.1217 | 2.333 | 24.667 | 0 | 0.0 |
+| e2_rrf_k10_bm25_emb | TODOS | 24 | 0.2091 | - | - | 3.958 | 20.042 | 6 | 0.25 |
+| e2_rrf_k10_bm25_emb | literal | 6 | 0.2137 | - | - | 4.167 | 19.833 | 0 | 0.0 |
+| e2_rrf_k10_bm25_emb | semantica | 6 | 0.1437 | - | - | 3.0 | 21.0 | 2 | 0.3333 |
+| e2_rrf_k10_bm25_emb | composta | 6 | 0.3571 | - | - | 6.167 | 17.833 | 1 | 0.1667 |
+| e2_rrf_k10_bm25_emb | sem_resposta | 6 | 0.1217 | - | - | 2.5 | 21.5 | 3 | 0.5 |
+| e2_rrf_k120_bm25_emb | TODOS | 24 | 0.2091 | - | - | 3.958 | 20.042 | 6 | 0.25 |
+| e2_rrf_k120_bm25_emb | literal | 6 | 0.2137 | - | - | 4.167 | 19.833 | 0 | 0.0 |
+| e2_rrf_k120_bm25_emb | semantica | 6 | 0.1437 | - | - | 3.0 | 21.0 | 2 | 0.3333 |
+| e2_rrf_k120_bm25_emb | composta | 6 | 0.3571 | - | - | 6.167 | 17.833 | 1 | 0.1667 |
+| e2_rrf_k120_bm25_emb | sem_resposta | 6 | 0.1217 | - | - | 2.5 | 21.5 | 3 | 0.5 |
+| e2_rrf_k1_bm25_emb | TODOS | 24 | 0.2091 | - | - | 3.958 | 20.042 | 6 | 0.25 |
+| e2_rrf_k1_bm25_emb | literal | 6 | 0.2137 | - | - | 4.167 | 19.833 | 1 | 0.1667 |
+| e2_rrf_k1_bm25_emb | semantica | 6 | 0.1437 | - | - | 3.0 | 21.0 | 1 | 0.1667 |
+| e2_rrf_k1_bm25_emb | composta | 6 | 0.3571 | - | - | 6.167 | 17.833 | 1 | 0.1667 |
+| e2_rrf_k1_bm25_emb | sem_resposta | 6 | 0.1217 | - | - | 2.5 | 21.5 | 3 | 0.5 |
+| e2_rrf_k60_bm25_emb | TODOS | 24 | 0.2091 | - | - | 3.958 | 20.042 | 6 | 0.25 |
+| e2_rrf_k60_bm25_emb | literal | 6 | 0.2137 | - | - | 4.167 | 19.833 | 0 | 0.0 |
+| e2_rrf_k60_bm25_emb | semantica | 6 | 0.1437 | - | - | 3.0 | 21.0 | 2 | 0.3333 |
+| e2_rrf_k60_bm25_emb | composta | 6 | 0.3571 | - | - | 6.167 | 17.833 | 1 | 0.1667 |
+| e2_rrf_k60_bm25_emb | sem_resposta | 6 | 0.1217 | - | - | 2.5 | 21.5 | 3 | 0.5 |

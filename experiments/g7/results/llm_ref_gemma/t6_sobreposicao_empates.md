@@ -1,0 +1,14 @@
+# Tabela T6 — Sobreposição (Jaccard Top-12) e Empates na Fronteira
+
+| config | perfil | n_consultas | jaccard_bm25_embedding | jaccard_tfidf_bm25 | jaccard_tfidf_embedding | in_all_media | fused_count_media | boundary_tie_count | boundary_tie_rate |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| e1_rr_bm25_emb | TODOS | 24 | 0.2091 | - | - | 3.958 | 20.042 | 0 | 0.0 |
+| e1_rr_bm25_emb | literal | 6 | 0.2137 | - | - | 4.167 | 19.833 | 0 | 0.0 |
+| e1_rr_bm25_emb | semantica | 6 | 0.1437 | - | - | 3.0 | 21.0 | 0 | 0.0 |
+| e1_rr_bm25_emb | composta | 6 | 0.3571 | - | - | 6.167 | 17.833 | 0 | 0.0 |
+| e1_rr_bm25_emb | sem_resposta | 6 | 0.1217 | - | - | 2.5 | 21.5 | 0 | 0.0 |
+| e2_rrf_k60_bm25_emb | TODOS | 24 | 0.2091 | - | - | 3.958 | 20.042 | 6 | 0.25 |
+| e2_rrf_k60_bm25_emb | literal | 6 | 0.2137 | - | - | 4.167 | 19.833 | 0 | 0.0 |
+| e2_rrf_k60_bm25_emb | semantica | 6 | 0.1437 | - | - | 3.0 | 21.0 | 2 | 0.3333 |
+| e2_rrf_k60_bm25_emb | composta | 6 | 0.3571 | - | - | 6.167 | 17.833 | 1 | 0.1667 |
+| e2_rrf_k60_bm25_emb | sem_resposta | 6 | 0.1217 | - | - | 2.5 | 21.5 | 3 | 0.5 |

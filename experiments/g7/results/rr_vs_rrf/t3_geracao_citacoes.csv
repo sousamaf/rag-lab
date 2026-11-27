@@ -1,0 +1,7 @@
+config,n_respondiveis,taxa_respostas_com_citacao,taxa_citacoes_sintaxe_valida,precisao_fontes_citadas_doc,precisao_fontes_citadas_trecho,cobertura_fatos_heuristica,n_sem_resposta,taxa_abstencao_heuristica_sem_resposta,fidelidade_humana_status
+e1_rr_bm25_emb,18,0.8333,1.0,0.7037,0.6435,0.6707,6,1.0,pendente_rubrica_humana_0_2
+e1_rr_todos,18,0.9444,0.9444,0.7861,0.7241,0.6933,6,1.0,pendente_rubrica_humana_0_2
+e2_rrf_k10_bm25_emb,18,0.7778,1.0,0.65,0.6222,0.6687,6,1.0,pendente_rubrica_humana_0_2
+e2_rrf_k120_bm25_emb,18,0.7778,1.0,0.613,0.563,0.6625,6,1.0,pendente_rubrica_humana_0_2
+e2_rrf_k1_bm25_emb,18,0.8889,1.0,0.6639,0.5861,0.676,6,1.0,pendente_rubrica_humana_0_2
+e2_rrf_k60_bm25_emb,18,0.7778,1.0,0.613,0.563,0.6625,6,1.0,pendente_rubrica_humana_0_2

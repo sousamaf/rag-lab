@@ -21,7 +21,7 @@
 ### 1.2 Painel de Progresso das Fases (F0 a F11)
 
 ```text
-Progresso Global da Missão G7 (F0 a F11): [#####################---] ~83% (9,9 / 12 fases)
+Progresso Global da Missão G7 (F0 a F11): [#######################-] ~98% (11,8 / 12 fases)
   [x] F0  Setup & Baseline            100%  [####################]
   [x] F1  Testes de Caracterização    100%  [####################]
   [x] F2  Contrato YAML HybridConfig  100%  [####################]
@@ -31,9 +31,9 @@ Progresso Global da Missão G7 (F0 a F11): [#####################---] ~83% (9,9 
   [x] F6  Estratégia DBSF (mu+-3sig)  100%  [####################]
   [x] F7  Composição Pipeline + Sync  100%  [####################]
   [~] F8  Corpus, Gabarito & Piloto    90%  [##################--] (falta revisão humana + freeze SHA-256)
-  [x] F9  Ferramental rodar/avaliar   100%  [####################]
-  [ ] F10 Execução Matriz E0-E6         0%  [--------------------]
-  [ ] F11 Avaliação Humana, Doc & PR    0%  [--------------------]
+  [x] F9  Ferramental rodar/avaliar   100%  [####################] (+ regressão + hardening PR #6)
+  [x] F10 Execução Matriz Controlada  100%  [####################] (144 + 48 consultas em embeddinggemma:300m)
+  [~] F11 Avaliação Humana, Doc & PR   90%  [##################--] (docs/g7-hybrid.md pronto; falta rubrica 0-2)
 ```
 
 | Fase | Status | Progresso | Arquivos-alvo | Critério de pronto | Bloqueios / Próxima Ação | Data / Checkpoint |
@@ -45,11 +45,11 @@ Progresso Global da Missão G7 (F0 a F11): [#####################---] ~83% (9,9 
 | **F4** | `[x] Concluída` | `100%` | `src/rag_lab/modules/hybrid.py`, `tests/test_hybrid.py` | Estratégia `weighted_rrf` implementada; equivalência com pesos unitários, inversão de vencedor por peso e peso zero sem truncagem testados | Nenhum (concluída e auditada) | 2026-11-18 · `_score_weighted_rrf` e validação em runtime contra `payload["retrieval"]` verificados |
 | **F5** | `[x] Concluída` | `100%` | `src/rag_lab/modules/hybrid.py`, `tests/test_hybrid.py` | Estratégia `convex` (Min-Max normalizado por $\sum w_j$) implementada; invariância a escala, sensibilidade a *outlier* e casos degenerados ($\max = \min$, 1 item) testados | Nenhum (concluída e auditada) | 2026-11-18 · `_score_convex` com denominador $W$ sobre todas as chaves de `retrieval` verificado |
 | **F6** | `[x] Concluída` | `100%` | `src/rag_lab/modules/hybrid.py`, `tests/test_hybrid.py` | Estratégia `dbsf` ($\mu \pm 3\sigma$ com *clip* $[0, 1]$ normalizado por $\sum w_j$) implementada; $\sigma = 0$, *clip* em $n=12$ e soma exata `fsum(contributions) == fused` testados | Nenhum (unificada com `_resolve_hybrid_config` e 39 testes em `test_hybrid.py`) | 2026-11-18 / 2026-11-26 · `_score_dbsf`, `_resolve_hybrid_config` e invariância de escala no desempate verificados |
-| **F7** | `[x] Concluída` | `100%` | `tests/test_pipeline.py` | Testes de composição ponta-a-ponta no `Pipeline` para todas as estratégias, bypass do `hybrid`, preservação de `metadata["tags"]` e do envelope JSON | Nenhum (concluída; suíte total com `121 passed, 2 skipped`) | 2026-11-18 / 2026-11-26 · `121 passed, 2 skipped` após rebase sobre `upstream/develop` `923cd03` |
-| **F8** | `[~] Quase concluída` | `90%` | `experiments/g7/{corpus/,perguntas_gabarito.yaml,configs/*.yaml,README.md}` | Corpus autorizado (12 `.md`, 135 chunks), 24 perguntas (4 perfis), 35/35 trechos validados em chunk único, 13 YAMLs validados via `rag-lab validate` e piloto ao vivo (`L02` e `S02`) validado no Docker/Ollama | Pendente revisão humana cruzada de Diego e Gabriel Alves em `perguntas_gabarito.yaml` (`status_revisao: validado`) e congelamento do SHA-256 final | 2026-11-18 / 2026-11-26 · 12 docs + 24 perguntas + 13 configs + 10 envelopes de piloto ao vivo validados |
-| **F9** | `[x] Concluída` | `100%` | `experiments/g7/{rodar.py,avaliar.py}`, `tests/test_g7_avaliacao.py` | Coletor online + avaliador com *replay* offline exato, tabelas T1–T6, planilha de avaliação humana e testes unitários das métricas; equivalência replay == online verificada (`10/10` no piloto) | Nenhum (pronta para Commit B) | 2026-11-26 · `133 passed, 2 skipped` + `--dry-run` e avaliação T1–T6 do piloto validados |
-| **F10** | `[ ] Pendente` | `0%` | `compose.override.yaml` (local, não versionado), `data/results/g7/` | Banco dedicado `rag_g7` via Docker (`127.0.0.1:5432`), ingestão única com embeddings e execução oficial da matriz E0–E6 com `manifest.json` completos | Homologar revisão humana do gabarito (Commit C) e definir par oficial de modelos (`llama3.2:3b` + `embeddinggemma:300m` ou `lfm3:1.7b-q4_K_M` + `nomic-embed-text:latest`) | Aguardando homologação do gabarito (Commit C) |
-| **F11** | `[ ] Pendente` | `0%` | `docs/g7-hybrid.md`, `experiments/g7/results/` | Avaliação humana (rubrica 0–2 de fidelidade/citações), relatório técnico final `docs/g7-hybrid.md` com tabelas T1–T6 e casos de *Fusion Tax*, suíte completa (`test_api.py`, `-m integration`, `npm run docs:check`) e PR | Depende dos resultados coletados na F10 | Aguardando F10 |
+| **F7** | `[x] Concluída` | `100%` | `tests/test_pipeline.py` | Testes de composição ponta-a-ponta no `Pipeline` para todas as estratégias, bypass do `hybrid`, preservação de `metadata["tags"]` e do envelope JSON | Nenhum (concluída; suíte total pós-regressão com `150 passed, 2 skipped`) | 2026-11-18 / 2026-11-27 · `tests/test_g7_regression.py` adicionada (`150 passed, 2 skipped`) |
+| **F8** | `[~] Quase concluída` | `90%` | `experiments/g7/{corpus/,perguntas_gabarito.yaml,configs/*.yaml,README.md}` | Corpus autorizado (12 `.md`, 135 chunks), 24 perguntas (4 perfis), 35/35 trechos validados em chunk único, 15 YAMLs validados via `rag-lab validate` | Gabarito mantido intocado/congelado para a bateria controlada; revisão humana cruzada final para marcar `homologado` | 2026-11-18 / 2026-11-27 · 12 docs + 24 perguntas + 15 configs válidos (`15/15`) |
+| **F9** | `[x] Concluída` | `100%` | `experiments/g7/{rodar.py,avaliar.py}`, `tests/{test_g7_avaliacao.py,test_g7_regression.py}` | Coletor online (`--rrf-k`, `--resume`, `sha256-lf`), avaliador `utf-8-sig` com *replay* offline duplo, T1–T6, suíte de regressão e testes unitários verdes | Nenhum (commits `24f1ba5` e `2809743` + hardening pós-revisão do PR #6) | 2026-11-26 / 2026-11-27 · `150 passed, 2 skipped`, `16/16` YAMLs validados |
+| **F10** | `[x] Concluída` | `100%` | `data/results/g7/{exp_rr_vs_rrf,exp_llm_ref_gemma}`, `experiments/g7/results/{rr_vs_rrf,llm_ref_gemma}` | Banco dedicado `rag_g7`, ingestão única com `embeddinggemma:300m` (`12` docs / `135` chunks em `20.72 s`), bateria A `llama3.2:3b` (`6×24 = 144` consultas, `replay_verificacao: 144/144`), bateria pareada B `lfm3:1.7b-q4_K_M` (`2×24 = 48` consultas sobre o mesmo embedding, `replay_verificacao: 48/48`) e remoção do `compose.override.yaml` temporário | Nenhum (concluída) | 2026-11-27 · `144/144` + `48/48` `all_matched: true` |
+| **F11** | `[~] Quase concluída` | `90%` | `docs/g7-hybrid.md`, `experiments/g7/results/` | Relatório técnico final `docs/g7-hybrid.md` redigido com 100% de dados reais (T1–T6, Cormack 2009 / Bruch 2023 / Samuelson, auditoria `hybrid: false`, regressão, limitações e comparação pareada de LLM sobre `embeddinggemma:300m`) | Preenchimento manual da rubrica 0–2 em `avaliacao_humana_template.csv` + revisão cruzada F8 + abertura do PR final | 2026-11-27 · `docs/g7-hybrid.md` publicado |
 
 ---
 
@@ -1208,6 +1208,31 @@ Durante a análise inicial do piloto ao vivo (`S02__rrf60.json`), surgiu a quest
 - **Descoberta experimental adicional no Replay Offline do Piloto (`t2_curva_rrf_k.md`, bloco E3):**
   - Na avaliação dos 10 envelopes reais do piloto (`L02` e `S02`), `verify_replay_equivalence` confirmou `10/10` envelopes idênticos (`all_matched: true`), o detector de *Fusion Tax* (`t5_fusion_tax.md`) classificou `rrf60`, `convex` e `dbsf` como `perda_top5` e `weighted_rrf` como `queda_mrr_no_top5` em `S02`, e a permutação de ordem do *round-robin* (**E3**) demonstrou que inverter `rr(bm25->embedding)` para `rr(embedding->bm25)` eleva o `trecho_recall_5` do piloto de `0.5000` para `1.0000` (e o `trecho_mrr` de `0.5833` para `0.6000`), comprovando quantitativamente o viés de ordem do `MODULE_ORDER` quando `top_k = 5` é ímpar.
 
+### 5.9 Revisão do PR #6: Auditoria Forense de `hybrid: false`, Regressão, Hardening F9 e Protocolo de Embedding Único Fixo (`2026-11-27`)
+
+- **Contexto da revisão em aula (Prof. Marco Antonio Firmino de Sousa):**
+  1. Verificação rigorosa do desligamento seguro (`modules.hybrid.enabled: false`) para assegurar que o módulo volte 100% ao comportamento *bypass* / *round-robin* original do laboratório.
+  2. Criação de suíte dedicada de testes de regressão ([tests/test_g7_regression.py](tests/test_g7_regression.py)).
+  3. Correção metodológica do protocolo experimental: proibir comparação confundida (onde LLM e modelo de embeddings mudavam juntos entre pilotos) e fixar **um único modelo de embeddings (`embeddinggemma:300m`, 768 dimensões)** como referência controlada para comparar *round-robin* vs. RRF variando `rrf_k`, além de isolar a comparação entre LLMs (`llama3.2:3b` vs. `lfm3:1.7b-q4_K_M`) sobre exatamente o mesmo índice vetorial.
+
+- **Achados da auditoria forense de desligamento (`hybrid: false`):**
+  - `git diff upstream/develop -- src/rag_lab/pipeline.py config/lab.yaml uv.lock` é **100% vazio** (`0` linhas alteradas).
+  - Em `src/rag_lab/config.py`, todas as regras de validação de `HybridConfig` (`strategy`, `weights`) estão estritamente condicionadas a `if self.modules["hybrid"].enabled:`.
+  - Nos **7 cenários de diagnóstico** executados contra `Pipeline.run` com `hybrid: false` (padrão `config/lab.yaml`, `bm25+embedding`, `tfidf+bm25+embedding`, YAML contendo seção `hybrid: {strategy: dbsf}` com `enabled: false`, YAML com `weighted_rrf` e apenas 1 recuperador com `enabled: false`, requisição enviando `attributes.hybrid_config` e requisição enviando `attributes.hybrid` espúrio), o módulo `Hybrid` **nunca foi instanciado**, o `trace` registrou `status == "bypass"`, `select_without_fusion` gerou os IDs exatos do *round-robin* e nenhuma chave `"hybrid"` foi adicionada a `evidence[].scores`.
+  - **Causas operacionais documentadas para o sintoma observado ao vivo:** (a) `src/rag_lab/api.py` (linhas 17–22) lê `load_settings(config_path)` uma única vez no `lifespan` do servidor FastAPI — editar o YAML sem reiniciar o container `app` mantém `hybrid: true` ativo em memória; (b) `.env` com `RAG_CONFIG=config/lab.local.yaml` faz a API/CLI ler `lab.local.yaml` em vez de `config/lab.yaml`; (c) quando `bm25` e `embedding` permanecem ativos e apenas `hybrid` vai para `false`, `pipeline.py` executa `select_without_fusion` (*round-robin*), cuja ordenação difere de `embedding` isolado (`config/lab.yaml`).
+
+- **Arquivos criados/endurecidos nesta etapa:**
+  - `tests/test_g7_regression.py` (novo, 6 funções / 12 casos parametrizados cobrindo bypass de `config/lab.yaml`, *round-robin* exato com 2 e 3 recuperadores, seção `hybrid:` e `attributes.hybrid_config` ignorados quando desabilitado, invariantes das 4 estratégias, comparação `round-robin` vs. RRF em $k \in \{1, 10, 60, 120\}$, desempate invariante à escala e rejeição de `NaN`/`Inf`).
+  - `experiments/g7/rodar.py`: adicionada flag `--rrf-k <int>` (`>= 1`) com registro em `manifest["overrides"]["rrf_k"]` e leitura `utf-8-sig` no `--resume`.
+  - `experiments/g7/avaliar.py`: leitura de `manifest.json` e envelopes com `encoding="utf-8-sig"` (proteção contra BOM UTF-8 do PowerShell).
+  - `experiments/g7/configs/e2_rrf_k1_bm25_emb.yaml` e `e2_rrf_k120_bm25_emb.yaml` adicionados (elevando a matriz YAML para `15` configs validados).
+  - `tests/test_g7_avaliacao.py`: novo teste `test_avaliar_reads_utf8_bom_json_and_rodar_rrf_k_override` (`150 passed, 2 skipped` no total pré-Docker).
+
+- **Protocolo experimental controlado com embedding único fixo (`embeddinggemma:300m`, porta `5433`):**
+  - Para eliminar conflito com o PostgreSQL 18 local da máquina Windows na porta `5432`, o container `postgres` (`pgvector/pgvector:pg16`) será exposto temporariamente em `127.0.0.1:5433:5432` com banco limpo `rag_g7` e ingestão **única** dos `12` arquivos `.md` (`135` chunks) usando **`embeddinggemma:300m`** (`768` dims) e `RAG_TAG_CLASSIFIER=terms`.
+  - **Bateria A — Comparação Controlada `Round-Robin` vs. `RRF(rrf_k)` (`data/results/g7/exp_rr_vs_rrf/`):** par fixo `llama3.2:3b` + `embeddinggemma:300m` em 6 configurações (`01_rr_bm25_emb`, `02_rrf_k1_bm25_emb`, `03_rrf_k10_bm25_emb`, `04_rrf_k60_bm25_emb`, `05_rrf_k120_bm25_emb`, `06_rr_todos_3ret`), totalizando **144 consultas** sobre as 24 perguntas (`L01–N06`).
+  - **Bateria B — Referência Pareada de LLM sobre o Mesmo Embedding (`data/results/g7/exp_llm_ref_gemma/`):** troca **apenas** o gerador para `lfm3:1.7b-q4_K_M` mantendo **exatamente o mesmo índice `embeddinggemma:300m`** nas configurações `01_rr_bm25_emb_lfm3` e `04_rrf_k60_bm25_emb_lfm3` (**48 consultas**), permitindo isolar o efeito puro do modelo gerador com recuperação idêntica de referência.
+
 ---
 
 ## 6. Especificação Técnica das Próximas Fases (F3 a F11)
@@ -1339,7 +1364,15 @@ Para manter a rastreabilidade científica exigida em `docs/missoes.md` (separand
 - [x] Implementar `experiments/g7/rodar.py` (execução controlada por YAML, contador de chamadas `chat_calls`/`embed_calls`, gravação de envelopes em `data/results/g7/<run_id>/envelopes/` e geração automática de `manifest.json` com hashes SHA-256 e metadados de ambiente).
 - [x] Implementar `experiments/g7/avaliar.py` (motor de *replay* offline exato para varredura de `rrf_k`, permutações de *round-robin* e estratégias de fusão; verificação automática `replay_ids == online_ids`; geração das tabelas CSV/Markdown **T1 a T6** e exportação de planilha/CSV para avaliação humana de fidelidade e citações).
 - [x] Implementar `tests/test_g7_avaliacao.py` (testes unitários determinísticos para `Recall@k`, `Hit@k`, `MRR`, `nDCG@k`, Jaccard, extração de citações `[n]`, taxa de abstenção e equivalência do motor de *replay* offline).
-- [x] Validar `ruff check .` e `pytest` com `test_g7_avaliacao.py` verde (`133 passed, 2 skipped`) e registrar a Fase F9 em `docs/g7-plano-implementacao.md`.
+- [x] Validar `ruff check .` e `pytest` com `test_g7_avaliacao.py` verde (`133 passed, 2 skipped` no Commit B `24f1ba5` e `137 passed, 2 skipped` no ajuste `2809743`) e registrar a Fase F9 em `docs/g7-plano-implementacao.md`.
+
+#### Commit Pós-Revisão PR #6 — Regressão, Hardening F9, Bateria Controlada (`embeddinggemma:300m`) e `docs/g7-hybrid.md`
+- [x] Auditoria forense de desligamento seguro (`hybrid: false`) nos 7 cenários, confirmando `pipeline.py`, `config/lab.yaml` e `uv.lock` intactos.
+- [x] Criar `tests/test_g7_regression.py` (12 casos cobrindo `bypass`, tags, `attributes.hybrid_config`, `rrf_k`, desempate e `NaN`/`Inf`).
+- [x] Endurecer `avaliar.py` (`utf-8-sig`) e `rodar.py` (`--rrf-k`, `utf-8-sig`) e criar `e2_rrf_k1_bm25_emb.yaml` e `e2_rrf_k120_bm25_emb.yaml` (`150 passed, 2 skipped` + `16/16` YAMLs válidos).
+- [x] Atualizar `docs/g7-plano-implementacao.md` **antes** da coleta oficial (este marco pré-experimento).
+- [x] Ingestão única no banco `rag_g7` (`embeddinggemma:300m`), execução das baterias controladas A (`llama3.2:3b` × 6 configs = 144 consultas) e B (`lfm3:1.7b-q4_K_M` × 2 configs = 48 consultas sobre o mesmo embedding) + avaliação `avaliar.py`.
+- [x] Redigir relatório final `docs/g7-hybrid.md` com 100% de dados reais e atualizar resultados finais no plano.
 
 #### Commit C — Conclusão da Fase F8: Homologação Humana do Gabarito e Congelamento do SHA-256
 - [ ] Revisão humana cruzada das 24 perguntas e dos 35 trechos relevantes em `experiments/g7/perguntas_gabarito.yaml` por Diego, Gabriel Alves e João Victor Póvoa.
@@ -1534,3 +1567,31 @@ Para manter a rastreabilidade científica exigida em `docs/missoes.md` (separand
   - `uv run --no-sync python experiments/g7/rodar.py --config experiments/g7/configs/e2_rrf_k60_bm25_emb.yaml --dry-run`: manifesto `g7-run-manifest/1` gerado com `selected_questions: 24`, hashes SHA-256 dos 12 arquivos do corpus e zero segredos.
   - `uv run --no-sync python experiments/g7/avaliar.py --run-dir data/results/teste_ao_vivo --out-dir data/results/teste_ao_vivo/avaliacao_piloto`: `10/10` envelopes avaliados, `replay_verification.all_matched = true`, 4 casos de *Fusion Tax* em `S02` reportados em `t5_fusion_tax.{csv,md}` e `avaliacao_humana_template.csv` gerado.
 - **Pendências / Descobertas:** Ferramental da Fase F9 pronto para o **Commit B**; próxima etapa é a revisão humana final e congelamento do SHA-256 de `experiments/g7/perguntas_gabarito.yaml` (**Commit C**) seguida da execução oficial da matriz E0–E6 (**Fase F10 / Commit D**).
+
+#### Revisão do PR #6 — Auditoria de Desligamento (`hybrid: false`), Suíte de Regressão e Plano Controlado com Embedding Fixo (`2026-11-27`)
+- **Resumo:** Atendimento aos 4 direcionamentos da revisão do PR #6 em aula: auditoria forense comprovando que `hybrid: false` preserva integralmente o `bypass` / *round-robin* original, criação da suíte dedicada `tests/test_g7_regression.py` (12 casos), hardening de `rodar.py` (`--rrf-k`, `utf-8-sig`) e `avaliar.py` (`utf-8-sig`), adição de `e2_rrf_k1_bm25_emb.yaml` e `e2_rrf_k120_bm25_emb.yaml`, e definição do protocolo experimental controlado usando um único embedding fixo (`embeddinggemma:300m`) tanto para a bateria principal (`llama3.2:3b`, 6 rodadas) quanto para a referência pareada de LLM (`lfm3:1.7b-q4_K_M`, 2 rodadas).
+- **Arquivos tocados:**
+  - `tests/test_g7_regression.py` (novo, 217 linhas, 6 funções / 12 casos parametrizados)
+  - `experiments/g7/rodar.py` (flag `--rrf-k`, `manifest.overrides.rrf_k`, leitura `utf-8-sig`)
+  - `experiments/g7/avaliar.py` (leitura `utf-8-sig` em `load_run_records`)
+  - `experiments/g7/configs/e2_rrf_k1_bm25_emb.yaml` e `e2_rrf_k120_bm25_emb.yaml` (novos YAMLs declarativos)
+  - `tests/test_g7_avaliacao.py` (novo teste `test_avaliar_reads_utf8_bom_json_and_rodar_rrf_k_override`)
+  - `docs/g7-plano-implementacao.md` (atualização pré-experimento com Seção 5.9, painel e changelog)
+- **Resultados de validação pré-experimento:**
+  - `uv run --no-sync python -m ruff check .`: `All checks passed!`
+  - `uv run --no-sync python -m rag_lab.cli validate` (`config/lab.yaml` + 15 YAMLs de `experiments/g7/configs/*.yaml`): `16/16 {"valid": true}`
+  - `uv run --no-sync python -m pytest --ignore=tests/test_api.py -v`: `150 passed, 2 skipped in 3.44s`
+- **Próximo passo imediato:** Subir `rag_g7` na porta `127.0.0.1:5433`, ingerir o corpus uma única vez com `embeddinggemma:300m` e executar as baterias controladas para gerar os dados reais de `docs/g7-hybrid.md`.
+
+#### Fases F10 e F11 — Bateria Controlada (`144 + 48` consultas) e Relatório Final `docs/g7-hybrid.md` (`2026-11-27`)
+- **Resumo:** Execução integral das duas baterias experimentais controladas sobre **ingestão única no banco `rag_g7`** com **`embeddinggemma:300m`** (`768` dims, digest `85462619ee721b466c5927d109d4cb765861907d5417b9109caebc4e614679f1`, `12` documentos / `135` chunks em `20.72 s`, `RAG_TAG_CLASSIFIER=terms`): (A) `144` consultas com `llama3.2:3b` (digest `a80c4f17acd55265feec403c7aef86be0c25983ab279d83f3bcd3abbcb5b8b72`) nas 6 configurações `rr_vs_rrf`, e (B) `48` consultas pareadas com `lfm3:1.7b-q4_K_M` (digest `b36a103fe2f8fbe9df2ceec88b9cfdf842dc04aaabe2b4677d1acf8e16570b5d`) sobre exatamente o mesmo índice vetorial em `e1_rr_bm25_emb` e `e2_rrf_k60_bm25_emb`. Ao término, o `compose.override.yaml` temporário foi removido, os containers foram restaurados saudáveis e foi redigido o relatório técnico [`docs/g7-hybrid.md`](g7-hybrid.md).
+- **Arquivos criados/atualizados:**
+  - `docs/g7-hybrid.md` (novo relatório técnico final em 7 seções, sem blocos `mermaid`, com fundamentação em Cormack et al. 2009, Bruch et al. 2023 e desigualdade de Samuelson)
+  - `experiments/g7/results/rr_vs_rrf/` (`t1`–`t6` `.csv`/`.md`, `replay_verificacao.json`, `avaliacao_humana_template.csv`)
+  - `experiments/g7/results/llm_ref_gemma/` (`t1`–`t6` `.csv`/`.md`, `replay_verificacao.json`, `avaliacao_humana_template.csv`)
+  - `docs/g7-plano-implementacao.md` (atualização aditiva do painel, checklist e changelog)
+- **Resultados reais consolidados:**
+  - **Replay offline:** `144/144` (`all_matched: true`) em `rr_vs_rrf` e `48/48` (`all_matched: true`) em `llm_ref_gemma`; recuperação T1/T5/T6 100% idêntica entre as duas baterias (isolamento puro do gerador).
+  - **`e1_rr_bm25_emb` vs. `e2_rrf_k{1,10,60,120}_bm25_emb` (`llama3.2:3b`):** RRF ($k \ge 10$) eleva `doc_recall_1` (`0.5833 -> 0.6389`), `doc_mrr` (`0.8750 -> 0.8843`) e `trecho_recall_1` (`0.3796 -> 0.4074`; `0.0556 -> 0.3056` em `semantica`), mas sofre `29` ocorrências de *Fusion Tax* (`S02` vai de `#2` no `embedding` para `#8` no RRF, reduzindo `trecho_recall_5` global de `0.9630` para `0.8889`). No replay, `convex` lidera `bm25+embedding` (`trecho_mrr = 0.8889`, `trecho_ndcg_5 = 0.8301`) e `weighted_rrf` (`1:1:2`) resgata `tfidf+bm25+embedding` (`trecho_recall_5`: `0.7685 -> 0.9074`).
+  - **Comparação pareada `llama3.2:3b` vs. `lfm3:1.7b-q4_K_M` sobre `embeddinggemma:300m`:** `lfm3` atinge maior precisão de citação documental (`0.9583`/`0.8898` vs. `0.7037`/`0.6130`), porém com abstenção inferior em `N01–N06` (`0.6667`/`0.8333` vs. `1.0000`) e geração `~2.0×–2.8×` mais lenta (`10.54 s`/`9.94 s` vs. `5.27 s`/`3.56 s`).
+- **Pendências humanas:** homologação cruzada do campo `status_revisao` em `experiments/g7/perguntas_gabarito.yaml` e preenchimento manual da rubrica `0–2` em `avaliacao_humana_template.csv`.

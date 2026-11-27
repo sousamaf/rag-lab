@@ -1,0 +1,301 @@
+run_id,config,question_id,perfil,rep,pergunta,fatos_esperados,resposta_llm,citacoes_extraidas,nota_fidelidade_0_2,citacoes_corretas_s_n,abstencao_correta_s_n,avaliador,observacoes
+01_rr_bm25_emb_lfm3,e1_rr_bm25_emb,C01,composta,1,Compare a periodicidade de rotação das chaves privadas Ed25519 do emissor de identidade com a periodicidade da cerimônia de recifragem das chaves mestras de disco no aurora-vault.,Chaves privadas Ed25519 do emissor de identidade rotacionam a cada 14 dias | Chaves mestras de disco no aurora-vault passam por recifragem semestral,"A rotação automática das chaves privadas **Ed25519** do emissor de identidade acontece a cada **14 dias**, conforme descrito no trecho 5 de *02_autenticacao_identidade.md* [2].  
+Já as **chaves mestras de criptografia de disco** armazenadas no **aurora‑vault** realizam uma **cerimônia de recifragem semestral** (ou seja, a cada 6 meses), conforme informado no trecho 4 de *06_seguranca_criptografia.md* [1].
+
+Portanto, a periodicidade da rotação das chaves privadas é muito mais frequente – ocorre aproximadamente **quatro vezes por mês** – enquanto a cerimônia de recifragem das chaves mestras ocorre apenas **duas vezes ao ano**. Isso significa que a recifragem dos cofres internos é menos frequente do que a rotação cíclica das chaves privadas do emissor de identidade.","[2, 1]",,,,,
+01_rr_bm25_emb_lfm3,e1_rr_bm25_emb,C02,composta,1,"Qual é a diferença entre o prazo de retenção das cópias de backup em armazenamento imutável WORM, o prazo de expurgo dos metadados transitórios de auditoria e a retenção legal dos relatórios fiscais?",Backups em armazenamento WORM: retenção por 90 dias | Metadados transitórios de auditoria: expurgo após 365 dias | Relatórios fiscais de bilhetagem: retenção legal de 5 anos,"**Diferenças entre os três prazos de retenção**
+
+| Artigo | Prazo de retenção / expurgo | Tipo de dado | Fonte |
+|--------|------------------------------|--------------|-------|
+| **Cópias de backup em armazenamento imutável WORM** | Retenção obrigatória por **90 dias** após transferência para armazenamento externo configurado em modo imutável WORM. | Artefatos de salvaguarda (backups) | [1] trecho 3 |
+| **Metadados transitórios de auditoria (e envelopes de depuração)** | Disponibilidade para consulta imediata por **365 dias**, depois expurgados automaticamente pelo coletor de retenção. | Metadados operacionais transitórios e depuração | [3] trecho 4 |
+| **Relatórios fiscais (bilhetagem e termos de consentimento de uso de bases acadêmicas)** | Retenção legal obrigatória de **5 anos** em arquivo morto auditável. | Relatórios fiscais e termos de consentimento | [2] trecho 5 |
+
+**Explicação**
+
+- O **armazenamento imutável WORM** garante que os backups sejam mantidos por um período curto (90 dias), mas não pode ser removido ou alterado.
+- Os **metadados transitórios de auditoria** têm uma janela de acesso limitada a 365 dias; após esse prazo eles são expurgados automaticamente pelo sistema de retenção.
+- Os **relatórios fiscais** possuem uma exigência legal de conservação mais longa, de cinco anos, dentro de um arquivo “morto” (inacessível) e auditável.
+
+Portanto, o prazo de retenção das cópias de backup (90 dias) é o mais curto; o de expurgo dos metadados transitórios (365 dias) é intermediário; e a retenção legal dos relatórios fiscais (5 anos) é o mais longo. [1][3][2]","[1, 3, 2, 1, 3, 2]",,,,,
+01_rr_bm25_emb_lfm3,e1_rr_bm25_emb,C03,composta,1,Quais são as metas de RPO e RTO para recuperação de desastres regionais e qual é o orçamento máximo mensal de indisponibilidade não planejada previsto no SLA institucional?,"RPO máximo de 15 minutos | RTO de até 40 minutos | Orçamento máximo de 21 minutos de indisponibilidade não planejada por mês (99,95%)","**Metas de RPO (Recovery Point Objective)**  
+O documento 07_backup_recuperacao.md (trecho 4) indica que a arquitetura de replicação assíncrona garante um **objetivo de ponto de recuperação RPO máximo de 15 minutos**, limitando a perda potencial de ingestões recentes em caso de colapso do datacenter primário [5].
+
+**Metas de RTO (Recovery Time Objective)**  
+Nas evidências fornecidas não há menção explícita de um objetivo ou tempo‑limite para a recuperação (RTO). Portanto, não é possível afirmar o valor de RTO a partir dos trechos disponíveis.
+
+**Orçamento máximo mensal de indisponibilidade não planejada**  
+O trecho 2 do documento 10_slas_disponibilidade.md afirma que a infraestrutura garante uma disponibilidade mensal mínima de 99,95 %, o que corresponde a um **orçamento máximo tolerado de 21 minutos de indisponibilidade não planejada por mês** [1].
+
+---
+
+*Resumo:*  
+- RPO máximo = 15 minutos [5].  
+- RTO = não informado nas fontes fornecidas.  
+- Indisponibilidade não planejada máxima permitida = 21 minutos por mês [1].","[5, 1, 5, 1]",,,,,
+01_rr_bm25_emb_lfm3,e1_rr_bm25_emb,C04,composta,1,Como a assinatura de compatibilidade vetorial é calculada no aurora-vectordb e quais mudanças de configuração obrigam o operador a reingerir toda a coleção documental no aurora-ingest?,"Resumo SHA-256 concatenando provedor, endereço do serviço, modelo codificador e dimensionalidade | Alteração de modelo de embeddings, endereço do provedor ou dimensões no YAML exige reingestão completa","**Assinatura de compatibilidade vetorial no aurora‑vectordb**  
+É calculada por um resumo **SHA‑256** que concatena quatro informações: o **provedor**, o **endereço do serviço**, o **nome do modelo codificador** e a **dimensionalidade declarada**. Essa construção é descrita em [3].
+
+**Mudanças que exigem reingeração da coleção documental no aurora‑ingest**  
+Se o operador alterar o **modelo de embeddings**, o **endereço do provedor** ou a **quantidade de dimensões** especificada no arquivo YAML da configuração, é **obrigatório reingrer toda a coleção documental** antes de executar novas buscas vetoriais. Isso é estabelecido em [1].
+
+(Outros pontos relevantes: para coleções institucionais de até 50 000 fragmentos, o aurora‑vectordb realiza uma varredura exata por distância de cosseno sem índices aproximados ANN, garantindo revogação matemática perfeita – [2]; o pipeline aurora‑ingest aceita apenas arquivos de texto puro e Markdown codificados em UTF‑8 – [4]; o motor aurora‑vectordb baseia‑se em PostgreSQL 16 com suporte nativo a operações algébricas em espaços de alta dimensão – [5]. )","[3, 1, 2, 4, 5]",,,,,
+01_rr_bm25_emb_lfm3,e1_rr_bm25_emb,C05,composta,1,Como funciona o endpoint HTTP de verificação rápida de saúde em relação ao uso do modelo de linguagem e como o utilitário de diagnóstico pré-voo impacta o consumo de tokens na bilhetagem?,O endpoint HTTP de saúde testa apenas o PostgreSQL e não aciona o LLM | O diagnóstico pré-voo faz chamada real aos modelos e debita tokens na cota de manutenção,"**Endpoint HTTP de verificação rápida de saúde e o modelo de linguagem**
+
+O endpoint de saúde (routa HTTP) executa apenas uma **consulta leve de conectividade ao banco PostgreSQL** e **não aciona o modelo de linguagem**. Essa escolha evita gerar custo ou latência artificial, conforme explicado em [2].
+
+**Impacto do utilitário de diagnóstico pré‑voo no consumo de tokens**
+
+Os testes automatizados realizados pelo *utilitário de verificação pré‑voo* (diagnóstico pré‑voo) **consomem tokens reais do endpoint configurado** e esses tokens são contabilizados na cota de manutenção da infraestrutura, conforme detalhado em [1].  
+
+O script de inicialização que precede o lançamento do servidor HTTP na porta padrão 8000 (descrito em [5]) também executa o diagnóstico pré‑voo completo – validando a versão do Python, as dependências, a porta de rede, o PostgreSQL 16 com extensão vetorial e as respostas dos modelos – antes de iniciar o serviço.
+
+**Outras contribuições de tokens**
+
+- Módulos opcionais de expansão de consulta que **invocam o modelo de linguagem antes da etapa de recuperação** adicionam **todo o seu consumo de tokens ao bilhete da requisição principal**, aumentando o gasto total por chamada [4].
+
+**Resumo**
+
+- O ponto de saúde HTTP **não utiliza o LLM**; sua funcionalidade limita‑se a uma ligação leve ao banco de dados.  
+- O **utilitário de diagnóstico pré‑voo** gera consumo direto de tokens no endpoint configurado, incorporando essas contas à cota de manutenção e ao bilhete da requisição.  
+- Além disso, expansões opcionais que chamam o modelo de linguagem antes da recuperação elevam ainda mais o consumo de tokens por requisição.","[2, 1, 5, 4]",,,,,
+01_rr_bm25_emb_lfm3,e1_rr_bm25_emb,C06,composta,1,"Quais portas de rede são utilizadas pelo proxy reverso Envoy de entrada, pelo daemon DNS interno do cluster e pelo exportador OpenTelemetry gRPC?",Porta 9443 para o proxy reverso Envoy | Porta 5353 para o daemon DNS interno | Porta 4317 para o exportador OpenTelemetry gRPC,"- **Proxy reverso Envoy de entrada:** utiliza a porta **9443** para comunicação externa ingressa, com terminação criptográfica mútua e inspeção de cabeçalhos [2].  
+- **Daemon DNS interno do cluster:** resolve os registros DNS estáticos nas portas **5353**, eliminando dependências externas durante falhas de conectividade WAN [1].  
+- **Exportador OpenTelemetry gRPC:** envia as métricas coletadas e os rastros distribuídos continuamente via protocolo gRPC na porta **4317** para o coletor central da infraestrutura [3].  
+
+Portanto, as portas de rede correspondentes são:  
+- Envoy (entrada) → 9443 [2]  
+- DNS interno → 5353 [1]  
+- OpenTelemetry gRPC exportador → 4317 [3].","[2, 1, 3, 2, 1, 3]",,,,,
+01_rr_bm25_emb_lfm3,e1_rr_bm25_emb,L01,literal,1,Qual é o tempo máximo de vida do token de sessão definido pela norma POL-SEG-09 e quantas tentativas inválidas provocam o evento SEC-LCK-301?,18 minutos de tempo máximo de vida do token de sessão (POL-SEG-09) | 5 tentativas consecutivas inválidas geram bloqueio por 45 minutos e evento SEC-LCK-301,"O tempo máximo de vida do token de sessão, conforme estabelecido pela norma **POL‑SEG‑09**, é de **18 minutos** imorável [1].
+
+Quanto às tentativas inválidas que desencadeiam o evento **SEC‑LCK‑301**, ocorrem quando um terminal acumula **5 tentativas consecutivas de autenticação com assinatura inválida** [2].
+
+Portanto, o token de sessão tem até 18 minutos de validade e a contagem de 5 tentativas inválidas consecutivas gera o evento de segurança SEC‑LCK‑301.","[1, 2]",,,,,
+01_rr_bm25_emb_lfm3,e1_rr_bm25_emb,L02,literal,1,Em que situação o motor aurora-vectordb aborta a busca com o código de erro ERR-AUR-417?,Quando há registros sem vetor ou com assinatura divergente da configuração ativa | Exige reingestão integral da base,"O motor **aurora‑vectordb** interrompe a busca imediatamente com o código de erro **ERR‑AUR‑417** quando uma consulta encontra registros **sem vetor** ou **com assinatura divergente da configuração ativa** [1]. Nesse caso, exige-se a reingestão integral da base.",[1],,,,,
+01_rr_bm25_emb_lfm3,e1_rr_bm25_emb,L03,literal,1,Qual fila recebe as tarefas após esgotar as retentativas no aurora-queue e por quantos dias os registros ficam retidos antes do expurgo?,Fila de mensagens mortas aurora.dlq.critico após 4 tentativas | Retenção por 21 dias antes do expurgo definitivo,"A fila que recebe as tarefas após esgotar as retentativas no **aurora‑queue** é a fila de mensagens mortas **aurora.dlq.critico** [3].  
+Os registros armazenados nesta fila permanecem disponíveis para inspeção manual até **21 dias**, antes de serem expurgados automaticamente no disco de mensageria [1].","[3, 1]",,,,,
+01_rr_bm25_emb_lfm3,e1_rr_bm25_emb,L04,literal,1,Qual é a franquia mensal de tokens no aurora-billing e qual código de bloqueio é retornado quando essa cota se esgota?,Franquia mensal de 4500000 tokens de inferência | Código de bloqueio orçamentário ERR-AUR-429,"A franquia mensal padrão de tokens de inferência para cada unidade departamental no **aurora‑billing** é de **4 500 000 tokens**, conforme indicado no trecho 2 de *05_faturamento_cotas.md* [3].
+
+Quando essa cota se esgota (ou ultrapassa o teto da janela móvel), as novas requisições de geração são recusadas e o código de bloqueio de orçamento **ERR‑AUR‑429** é retornado, conforme detalhado no trecho 4 de *05_faturamento_cotas.md* [1].","[3, 1]",,,,,
+01_rr_bm25_emb_lfm3,e1_rr_bm25_emb,L05,literal,1,O que determina a diretriz POL-SEG-14 sobre a rede aurora_db_net e a porta 5432?,PostgreSQL opera exclusivamente na rede interna aurora_db_net | Nunca publica a porta 5432 para interfaces externas,"A diretriz normativa **POL‑SEG‑14** determina que o serviço de banco de dados **PostgreSQL** deve funcionar apenas dentro da rede interna **aurora_db_net** e **nunca** publicar a porta **5432** para interfaces externas. Essa exigência é expressa no trecho 2 do documento *06_seguranca_criptografia.md*, que afirma: “Em conformidade com a diretriz normativa POL‑SEG‑14, o serviço de banco de dados PostgreSQL opera exclusivamente dentro da rede interna aurora_db_net e nunca publica a porta 5432 para interfaces externas” [1].",[1],,,,,
+01_rr_bm25_emb_lfm3,e1_rr_bm25_emb,L06,literal,1,Quando o alerta ALR-LAT-901 é disparado e em qual porta o protocolo OpenTelemetry exporta os rastros?,Exportação OpenTelemetry gRPC na porta 4317 | Disparo de ALR-LAT-901 quando a geração ultrapassa 4500 ms em três amostras seguidas,"O alerta **ALR‑LAT‑901** é disparado quando a **duração isolada da etapa de geração textual no modelo de linguagem ultrapassa 4500 milissegundos em três amostras consecutivas** [1].  
+
+Os rastros (métricas coletadas e os traços distribuídos) são exportados continuamente pelo protocolo **OpenTelemetry gRPC na porta 4317** para o coletor central da infraestrutura [2].","[1, 2]",,,,,
+01_rr_bm25_emb_lfm3,e1_rr_bm25_emb,N01,sem_resposta,1,Quais são os parâmetros de resolução em DPI e o idioma padrão do módulo de OCR do aurora-ingest para extrair tabelas de arquivos PDF escaneados?,Abstenção explícita: a base não possui configuração de DPI/idioma de OCR (ou informar que o aurora-ingest aceita apenas .txt/.md UTF-8 e bloqueia arquivos que dependam de OCR).,"Com base nas evidências apresentadas, não há informação que especifique os **parâmetros de resolução em DPI** nem o **idioma padrão do módulo de OCR do aurora‑ingest** para extração de tabelas em arquivos PDF escaneados. As trechos disponíveis tratam da governança de dados, telemetria, arquitetura geral, autenticação e auditoria, mas nenhum menciona DPI, OCR ou configurações linguísticas para processamento de PDFs [1][2][3][4][5]. Portanto, não é possível responder à pergunta com os documentos fornecidos.","[1, 2, 3, 4, 5]",,,,,
+01_rr_bm25_emb_lfm3,e1_rr_bm25_emb,N02,sem_resposta,1,Quais valores de m e ef_construction são recomendados para calibrar o índice aproximado HNSW no aurora-vectordb em coleções de até 50000 fragmentos?,"Abstenção explícita: a base não contém parâmetros HNSW (m ou ef_construction), pois até 50000 fragmentos o aurora-vectordb utiliza busca exata sem índice ANN.","Com base nas evidências apresentadas:
+
+- O trecho [1] descreve uma varredura exata por distância de cosseno para coleções institucionais de até 50 000 fragmentos **sem** utilizar índices aproximados ANN, mas não menciona parâmetros como *m* ou *ef_construction*.  
+- O trecho [2] trata da criptografia de repouso dos volumes, irrelevante para calibração de HNSW.  
+- O trecho [3] fornece a arquitetura geral e topologia do núcleo Aurora, sem especificar configurações de HNSW.  
+- O trecho [4] informa sobre janelas de manutenção preventiva, também não relacionado aos parâmetros de HNSW.  
+- O trecho [5] discute o banco vetorial e indexação semântica, ainda sem referência a valores de *m* ou *ef_construction*.
+
+Portanto, nenhuma das fontes fornecidas contém valores recomendados para **m** e **ef_construction** para calibrar o índice aproximado HNSW no **aurora‑vectordb** em coleções de até 50 000 fragmentos. **Dados insuficientes** para responder à pergunta.","[1, 2, 3, 4, 5]",,,,,
+01_rr_bm25_emb_lfm3,e1_rr_bm25_emb,N03,sem_resposta,1,Qual é o percentual de desconto concedido no aurora-billing para laboratórios que aderem ao plano Estudantil Básico com pagamento anual antecipado?,Abstenção explícita: as evidências não mencionam plano Estudantil Básico nem desconto por pagamento anual antecipado.,"Com base nas fontes fornecidas:
+
+- [1] descreve o serviço *aurora‑backup* e a coordenação de cópias de segurança, sem mencionar descontos ou planos de pagamento.  
+- [2] fala sobre o módulo de controle econômico *aurora‑billing* e o uso de tokens, também sem referência a percentuais de desconto.  
+- [3] trata da política *POL‑SLA‑01* de disponibilidade, não relacionado a descontos.  
+- [4] menciona o relatório de bilhetagem diário, sem qualquer informação sobre planos estudantis ou pagamentos antecipados.  
+- [5] discute a colheita de coleções institucionais via *aurora‑vectordb*, sem menção a desconto.
+
+Nenhuma dessas trechos contém o percentual de desconto concedido no *aurora‑billing* para laboratórios que aderem ao plano **Estudantil Básico** com pagamento anual antecipado. Portanto, os documentos não fornecem essa evidência.
+
+**Resposta:** O percentual de desconto não pode ser determinado a partir das fontes listadas.","[1, 2, 3, 4, 5]",,,,,
+01_rr_bm25_emb_lfm3,e1_rr_bm25_emb,N04,sem_resposta,1,Qual foi a escalação titular da seleção brasileira na final da Copa do Mundo de 2002 disputada em Yokohama?,Abstenção explícita: informar que as evidências fornecidas na base não contêm informações para responder à pergunta.,"Com base nas informações disponibilizadas nas fontes citadas — [1], [2], [3], [4] e [5] — não existe trecho que mencione a escalação titular da Seleção Brasileira na final da Copa do Mundo de 2002 realizada em Yokohama. Portanto, não é possível fornecer essa resposta a partir dos documentos apresentados.","[1, 2, 3, 4, 5]",,,,,
+01_rr_bm25_emb_lfm3,e1_rr_bm25_emb,N05,sem_resposta,1,Qual é a temperatura ideal do forno e o tempo de fermentação natural para assar um panetone artesanal de frutas cristalizadas?,Abstenção explícita: informar que a base documental não possui evidências sobre preparo de panetone.,"Com base apenas nos documentos fornecidos (três trechos entre [1] e [5]), não existe qualquer informação que mencione a **temperatura ideal do forno** nem o **tempo de fermentação natural** para preparar um *panetone* artesanal de frutas cristalizadas. As fontes apresentadas tratam de assinaturas de compatibilidade vetorial, versões de Python em ambientes Windows, arquitetura corporativa, métricas de telemetria e bloqueios bancários — nenhum deles refere‑se à culinária ou ao processo de fermentação de frutas cristalizadas.  
+
+Portanto, não é possível responder à pergunta com as evidências disponíveis.","[1, 5]",,,,,
+01_rr_bm25_emb_lfm3,e1_rr_bm25_emb,N06,sem_resposta,1,Como funciona o mecanismo bioquímico de fixação noturna de carbono na fotossíntese CAM de plantas suculentas?,Abstenção explícita: informar que a base não traz evidências sobre fotossíntese CAM ou biologia vegetal.,"Não é possível responder à pergunta sobre o mecanismo bioquímico de fixação noturna de carbono na fotossíntese CAM de plantas suculentas com base nos documentos fornecidos. Nenhum dos trechos citados ([1]–[5]) contém informações relevantes sobre fotossíntese, CAM ou processos biológicos de plantas; eles tratam de criptografia, interfaces de linha de comando, arquitetura de cluster e configuração de YAML, que são completamente desconectados do tema solicitado. Portanto, os documentos disponíveis são insuficientes para fornecer uma explicação adequada.","[1, 5]",,,,,
+01_rr_bm25_emb_lfm3,e1_rr_bm25_emb,S01,semantica,1,Como a plataforma garante que uma interrupção brusca durante o cadastramento de um texto não deixe o arquivo salvo pela metade?,Substituição em transação atômica única por documento no banco de dados | Reversão automática (rollback) preservando a versão anterior íntegra,"A plataforma assegura que, em caso de uma interrupção brusca durante o cadastramento (indexação) de um texto, nenhum meio do arquivo seja gravado parcialmente. Isso é feito através de uma reversão automática da transação e a manutenção da versão anterior do documento íntegra para os usuários. Quando a geração dos vetores falha no meio do processamento de um arquivo, a transação inteira sofre reversão automática e a versão anterior permanece disponível sem corrupção [5]. Adicionalmente, em situações de falhas de provedor de embeddings ou interrupções elétricas, não é gravada metade do arquivo e a versão anterior permanece disponível sem danos [1]. Assim, tanto a recuperação de backup quanto a lógica de transação garantem a integridade do arquivo original.","[5, 1]",,,,,
+01_rr_bm25_emb_lfm3,e1_rr_bm25_emb,S02,semantica,1,De que forma o serviço web impede que um usuário externo descubra endereços de servidores internos ou credenciais ao ocorrer um defeito de comunicação?,Exceções de bibliotecas/SDKs são interceptadas na borda HTTP | Conversão em erro genérico HTTP 503 omitindo URLs e chaves de API,"O serviço web impede que um usuário externo descubra os endereços dos servidores internos ou as credenciais das bibliotecas de clientes externos ao interceptar qualquer exceção que seja lançada por essas bibliotecas **na borda HTTP** e transformá‑la em um erro genérico 503, sem revelar URLs nem chaves de API [4].  
+
+Adicionalmente, para eliminar dependências de registradores externos durante falhas de conectividade WAN, o sistema utiliza **registros DNS estáticos resolvidos internamente pela porta 5353**, o que dificulta a descoberta de serviços dentro do cluster [2].  
+
+Essas medidas garantem que, mesmo em caso de defeito de comunicação, a exposição de topologia e de credenciais seja bloqueada.","[4, 2]",,,,,
+01_rr_bm25_emb_lfm3,e1_rr_bm25_emb,S03,semantica,1,Por que alterar os parâmetros de habilitação de etapas no arquivo de ajuste não modifica imediatamente o comportamento das consultas em andamento?,Ausência de recarga dinâmica (hot-reload) de configuração por requisição | Necessidade de reiniciar explicitamente o processo ou contêiner após editar o YAML,"Alterar os parâmetros de habilitação de etapas no arquivo de ajuste **não** modifica imediatamente o comportamento das consultas já em andamento, porque o sistema não faz recarga dinâmica de configuração durante o atendimento de requisições. Conforme [4]: “Não existe recarga dinâmica de configuração no meio do atendimento de requisições, portanto qualquer alteração nos switches do YAML exige o reinício explícito do processo da aplicação ou do contêiner.”  
+
+Além disso, o validador de configuração aplica um esquema estrito que proíbe campos desconhecidos ou opções não documentadas, rejeitando imediatamente arquivos com erros de digitação ou opções não reconhecidas [1]. Portanto, até que o arquivo seja substituído completamente e o processo seja reiniciado, as alterações permanecem inativas para as consultas existentes.","[4, 1]",,,,,
+01_rr_bm25_emb_lfm3,e1_rr_bm25_emb,S04,semantica,1,Qual é o impacto na cobrança do departamento quando uma pesquisa não localiza nenhum conteúdo útil no acervo e a etapa de redação da resposta é pulada?,Isenção da tarifação de síntese/geração quando não há evidências e o LLM não é chamado | Débito restrito apenas ao custo de codificação da busca vetorial (se utilizada),"Quando uma consulta não encontra nenhum conteúdo útil no acervo – ou seja, não localiza evidências – e a etapa de redação/resposta é omitida, o sistema entra no caso descrito em **[2]** e **[4]**.  
+
+- De acordo com **[2]**, consultas que resultam em ausência de evidências na base documental e não acionam o *modelo gerador final* são **isentas de tarifação de síntese**; elas são debitadas apenas pelo custo de codificação da busca vetorial.  
+- Além disso, **[4]** estabelece que, quando todos os motores de recuperação de uma rota retornam conjuntos vazios, o coordenador **aborda a chamada ao gerador textual** e devolve imediatamente uma mensagem padronizada de ausência de lastro documental.  
+
+Portanto, o impacto na cobrança do departamento nesse cenário é que **não há incidência da tarifa de síntese**; o único valor pago é o custo de construção da busca vetorial. A etapa de redação (ou geração) é simplesmente pausada, sem gerar despesas adicionais. Em resumo, o departamento só arca pelo custo de codificação da busca vetorial, e não pela tarifa de síntese ou por qualquer outro serviço de elaboração.","[2, 4, 2, 4]",,,,,
+01_rr_bm25_emb_lfm3,e1_rr_bm25_emb,S05,semantica,1,O que ocorre com os registros já cadastrados na base caso um responsável troque o nome de um documento na pasta ou delete o arquivo do computador?,Trocar o nome ou mover gera novo identificador e duplica registros no banco | Apagar o arquivo do disco não remove automaticamente os trechos já persistidos no PostgreSQL,"**Resposta:**  
+Quando um responsável altera o nome de um documento dentro da pasta (renomeia ou move o arquivo), o sistema cria um **novo identificador** baseado no caminho relativo. Isso pode gerar **identificadores distintos** e, se o banco não for limpo, **duplicar os registros** existentes (evidenciado em [2]).  
+
+Por sua vez, a **remoção física do arquivo** do computador **não apaga automaticamente** os trechos já gravados no banco PostgreSQL; esses registros permanecem até que seja realizada uma limpeza administrativa manual (evidenciado em [4]).  
+
+Consequentemente, os registros já cadastrados na base **não são automaticamente removidos nem atualizados** após trocar o nome do documento ou deletar o arquivo local. Para eliminar os dados antigos seria necessário re‑inserir a base ou executar a limpeza administrativa adequada.","[2, 4]",,,,,
+01_rr_bm25_emb_lfm3,e1_rr_bm25_emb,S06,semantica,1,Por qual motivo as equipes de teste são impedidas de adotar os próprios textos produzidos pelo assistente automatizado como padrão de resposta correta?,A norma POL-AUD-03 proíbe usar a saída do próprio sistema como gabarito para preservar o rigor científico da avaliação,"As equipes de teste não podem adotar os textos que o assistente automatizado gera como padrão de resposta correta, pois a **norma POL‑AUD‑03** proíbe estritamente o uso da própria resposta do sistema como gabarito de referência para garantir rigor científico nas avaliações de qualidade da plataforma [2]. Isso permite que auditores independentes inspecionem a fidelidade factual de cada afirmação textual, verificando se ela está sustentada literalmente pela fonte indicada no marcador numérico entre colchetes [3]. Portanto, a adoção dos próprios textos gerados pelo assistente comprometeria a objetividade e a verificabilidade das respostas, violando esses requisitos de conformidade e auditoria.","[2, 3]",,,,,
+04_rrf_k60_bm25_emb_lfm3,e2_rrf_k60_bm25_emb,C01,composta,1,Compare a periodicidade de rotação das chaves privadas Ed25519 do emissor de identidade com a periodicidade da cerimônia de recifragem das chaves mestras de disco no aurora-vault.,Chaves privadas Ed25519 do emissor de identidade rotacionam a cada 14 dias | Chaves mestras de disco no aurora-vault passam por recifragem semestral,"A rotação automática das chaves privadas **Ed25519** do emissor de identidade ocorre a cada **14 dias**, mantendo a chave pública anterior válida apenas para verificação por uma hora [1].  
+Já a “cerimônia de recifragem” das **chaves mestras de criptografia de disco** no **aurora‑vault** é **semestral**, ou seja, realizada duas vezes ao ano (a cada 6 meses), conduzida pelo comitê de segurança da informação [2].
+
+Portanto, a periodicidade das chaves privadas Ed25519 é muito mais frequente – **14 dias** (≈ 0,07 anos) – enquanto a atualização das chaves mestras ocorre **a cada 6 meses** (≈ 0,5 anos). Em termos práticos, a chave privada do emissor é renovada cerca de três vezes por mês, ao contrário da qual a chave mestre é substituída apenas duas vezes por ano.  
+
+*Fontes:* [1], [2].","[1, 2, 1, 2]",,,,,
+04_rrf_k60_bm25_emb_lfm3,e2_rrf_k60_bm25_emb,C02,composta,1,"Qual é a diferença entre o prazo de retenção das cópias de backup em armazenamento imutável WORM, o prazo de expurgo dos metadados transitórios de auditoria e a retenção legal dos relatórios fiscais?",Backups em armazenamento WORM: retenção por 90 dias | Metadados transitórios de auditoria: expurgo após 365 dias | Relatórios fiscais de bilhetagem: retenção legal de 5 anos,"**Resposta**
+
+A diferença entre os três prazos de retenção pode ser descrita da seguinte forma:
+
+1. **Cópias de backup em armazenamento imutável WORM**  
+   Segundo [2] (trecho 3), os artefatos de salvaguarda são transferidos para armazenamento externo configurado em modo imutável WORM e permanecem sob **retenção obrigatória por 90 dias**.
+
+2. **Metadados transitórios de auditoria**  
+   De acordo com [3] (trecho 4), metadados operacionais e envelopes de depuração técnica permanecem disponíveis para consulta imediata por **365 dias**, antes de serem expurgados automaticamente pelo coletor de retenção.
+
+3. **Relatórios fiscais (bilhetagem e termos de consentimento de uso de bases acadêmicas)**  
+   O texto fornecido afirma que esses documentos possuem **retenção legal obrigatória de 5 anos em arquivo morto auditável**. No","[2, 3]",,,,,
+04_rrf_k60_bm25_emb_lfm3,e2_rrf_k60_bm25_emb,C03,composta,1,Quais são as metas de RPO e RTO para recuperação de desastres regionais e qual é o orçamento máximo mensal de indisponibilidade não planejada previsto no SLA institucional?,"RPO máximo de 15 minutos | RTO de até 40 minutos | Orçamento máximo de 21 minutos de indisponibilidade não planejada por mês (99,95%)","**Metas de recuperação de desastres regionais**
+
+- **RPO (Recovery Point Objective)** – O objetivo máximo de ponto de recuperação é de **15 minutos**, alcançado pela arquitetura de replicação assíncrona que limita a perda de ingestões recentes em caso de colapso do datacenter primário [3].
+
+- **RTO (Recovery Time Objective)** – O documento fornecido não contém uma definição explícita de tempo de recuperação para cenários regionais; nenhuma das referências listadas menciona um valor específico para RTO. Portanto, os dados necessários para estabelecer a meta de RTO não estão disponíveis nas evidências atuais.
+
+**Orçamento máximo mensal de indisponibilidade não planejada**
+
+- A garantia de disponibilidade mínima de **99,95 % por mês** implica um orçamento máximo tolerado de **21 minutos de indisponibilidade não planejada por mês** [1].
+
+**Resumo**
+
+| Métrica | Valor / Informação |
+|---------|---------------------|
+| RPO (regional) | 15 minutos [3] |
+| RTO (regional) | Não especificado nas evidências fornecidas |
+| Orçamento máximo mensal de indisponibilidade não planejada | 21 minutos por mês [1] |
+
+*As fontes utilizadas são [1], [3] e as demais referências ([2], [4], [5]) não contêm os elementos solicitados.*","[3, 1, 3, 1, 1, 3, 2, 4, 5]",,,,,
+04_rrf_k60_bm25_emb_lfm3,e2_rrf_k60_bm25_emb,C04,composta,1,Como a assinatura de compatibilidade vetorial é calculada no aurora-vectordb e quais mudanças de configuração obrigam o operador a reingerir toda a coleção documental no aurora-ingest?,"Resumo SHA-256 concatenando provedor, endereço do serviço, modelo codificador e dimensionalidade | Alteração de modelo de embeddings, endereço do provedor ou dimensões no YAML exige reingestão completa","**Cálculo da assinatura de compatibilidade vetorial no *aurora‑vectordb***  
+A assinatura é gerada por um **resumo SHA‑256** que concatena os seguintes campos:  
+
+1. O **provedor** (ex.: “aurora” ou outro provedor de serviços).  
+2. O **endereço do serviço** (URL/endpoint onde o modelo está hospedado).  
+3. O **nome do modelo codificador** (o encoder usado para transformar os textos).  
+4. A **dimensionalidade declarada** do espaço vetorial (número de dimensões).  
+
+Essas quatro informações são unidas numa string e submetida ao algoritmo SHA‑256, produzindo o valor de assinatura que garante a compatibilidade entre o provedor e o modelo. Isso está descrito no trecho 3 do documento [3].  
+
+---
+
+**Mudanças de configuração que exigem reingestão total na coleção documental (*aurora‑ingest*)**  
+De acordo com o trecho 8 do documento [1], se o operador **alterar**:  
+
+- o **modelo de embeddings**,  
+- o **endereço do provedor**, ou  
+- a **quantidade de dimensões** no arquivo YAML de configuração,  
+
+é **obrigatório reingressar toda a coleção documental** antes de poder realizar novas buscas vetoriais no *aurora‑vectordb*.  
+
+Portanto, qualquer modificação nestas três áreas (modelo de embeddings, endereço do provedor ou dimensões) deve ser feita seguida de uma reingestão completa da coleção documental para manter a consistência das assinaturas vetoriais.  
+
+---  
+
+*Resumo*:  
+- A assinatura de compatibilidade vetorial é o SHA‑256 de uma concatenação de provedor, endereço do serviço, nome do modelo codificador e dimensionalidade (evidência [3]).  
+- Alterações no modelo de embeddings, no endereço do provedor ou nas dimensões definidas no YAML forçam o operador a reingressar toda a coleção documental no *aurora‑ingest* (evidência [1]).","[3, 1, 3, 1]",,,,,
+04_rrf_k60_bm25_emb_lfm3,e2_rrf_k60_bm25_emb,C05,composta,1,Como funciona o endpoint HTTP de verificação rápida de saúde em relação ao uso do modelo de linguagem e como o utilitário de diagnóstico pré-voo impacta o consumo de tokens na bilhetagem?,O endpoint HTTP de saúde testa apenas o PostgreSQL e não aciona o LLM | O diagnóstico pré-voo faz chamada real aos modelos e debita tokens na cota de manutenção,"**Endpoint HTTP de verificação rápida de saúde e o modelo de linguagem**
+
+- A verificação de integridade na rota HTTP de saúde executa **apenas uma consulta leve de conectividade ao banco PostgreSQL**, evitando que o modelo de linguagem seja acionado. Isso impede a geração de custo ou latência artificial (evidenciado em [2]).
+
+**Utilizador de diagnóstico pré‑voo e consumo de tokens**
+
+- Antes de iniciar o servidor HTTP na porta padrão 8000, o *script de partida* executa o **diagnóstico pré‑voo completo** (validação da versão do Python, dependências, porta de rede, PostgreSQL 16 com extensão vetorial e a **resposta dos modelos**) [3].  
+- Os **testes automatizados de diagnóstico** realizados pelo utilitário de verificação pré‑voo **consomem tokens reais do endpoint configurado** e esses tokens são contabilizados na **cota de manutenção da infraestrutura** [1].
+
+**Impacto nos bilhetes (bilhetagem)**
+
+- Módulos opcionais de expansão de consulta que **invocam o modelo de linguagem antes da etapa de recuperação** têm seu consumo somado integralmente ao bilhete da requisição principal [4].  
+- O verificador de acesso rejeita instantaneamente tokens cujo relógio de emissão apresenta desvio superior a 10 segundos em relação ao servidor de tempo NTP interno do cluster [5].
+
+**Resumo**
+
+O endpoint de saúde HTTP **não utiliza o modelo de linguagem**; ele realiza apenas uma consulta leve de conectividade ao PostgreSQL, garantindo que não haja custo ou latência adicional ( [2] ). No entanto, o **utilizador de diagnóstico pré‑voo** executa validações que incluem a resposta dos modelos, o que gera consumo de tokens. Esses tokens são registrados na cota de manutenção e podem ser considerados parte do bilhete da requisição, aumentando o gasto de tokens por cada execução do diagnóstico ( [1][3][4] ). Assim, enquanto o próprio ponto de saúde é “livre” de invocação de LLM, o processo de preparação e validação pré‑voo contribui significativamente para o volume de tokens contabilizados na bilhetagem.","[2, 3, 1, 4, 5, 2, 1, 3, 4]",,,,,
+04_rrf_k60_bm25_emb_lfm3,e2_rrf_k60_bm25_emb,C06,composta,1,"Quais portas de rede são utilizadas pelo proxy reverso Envoy de entrada, pelo daemon DNS interno do cluster e pelo exportador OpenTelemetry gRPC?",Porta 9443 para o proxy reverso Envoy | Porta 5353 para o daemon DNS interno | Porta 4317 para o exportador OpenTelemetry gRPC,"Com base nas evidências fornecidas:
+
+- O proxy reverso **Envoy** que recebe toda a comunicação externa ingressa opera na porta **9443** [1].
+- O **daemon DNS interno** do cluster resolve registros DNS estáticos na porta **5353** [2].
+- O **exportador OpenTelemetry gRPC** envia métricas e traces continuamente na porta **4317** para o coletor central da infraestrutura [3].","[1, 2, 3]",,,,,
+04_rrf_k60_bm25_emb_lfm3,e2_rrf_k60_bm25_emb,L01,literal,1,Qual é o tempo máximo de vida do token de sessão definido pela norma POL-SEG-09 e quantas tentativas inválidas provocam o evento SEC-LCK-301?,18 minutos de tempo máximo de vida do token de sessão (POL-SEG-09) | 5 tentativas consecutivas inválidas geram bloqueio por 45 minutos e evento SEC-LCK-301,"O tempo máximo de vida do token de sessão, conforme estabelecido pela norma **POL‑SEG‑09**, é de **18 minutos** [1].  
+Para que o evento de segurança **SEC‑LCK‑301** seja gerado, um terminal deve acumular **5 tentativas consecutivas de autenticação com assinatura inválida** [2].  
+
+Portanto, o token tem validade máxima de 18 minutos e 5 tentativas inválidas seguidas provocam o evento SEC‑LCK‑301.","[1, 2]",,,,,
+04_rrf_k60_bm25_emb_lfm3,e2_rrf_k60_bm25_emb,L02,literal,1,Em que situação o motor aurora-vectordb aborta a busca com o código de erro ERR-AUR-417?,Quando há registros sem vetor ou com assinatura divergente da configuração ativa | Exige reingestão integral da base,"O motor **aurora‑vectordb** interrompe a busca imediatamente com o código de erro **ERR‑AUR‑417** quando uma consulta encontra registros **sem vetor** ou **com assinatura divergente da configuração ativa** [1]. Nesse caso, exige-se a reingestão integral da base.",[1],,,,,
+04_rrf_k60_bm25_emb_lfm3,e2_rrf_k60_bm25_emb,L03,literal,1,Qual fila recebe as tarefas após esgotar as retentativas no aurora-queue e por quantos dias os registros ficam retidos antes do expurgo?,Fila de mensagens mortas aurora.dlq.critico após 4 tentativas | Retenção por 21 dias antes do expurgo definitivo,"A fila que recebe as tarefas após esgotar as retentativas no **aurora‑queue** é a fila de mensagens mortas chamada **aurora.dlq.critico** [3].  
+Os registros armazenados nesta fila permanecem disponíveis para inspeção até **21 dias**, antes de serem expurgados definitivamente do disco de mensageria [2].
+
+Portanto, após as quatro tentativas sem sucesso, a mensagem é transferida para **aurora.dlq.critico**, onde ela fica retida por **21 dias**.","[3, 2]",,,,,
+04_rrf_k60_bm25_emb_lfm3,e2_rrf_k60_bm25_emb,L04,literal,1,Qual é a franquia mensal de tokens no aurora-billing e qual código de bloqueio é retornado quando essa cota se esgota?,Franquia mensal de 4500000 tokens de inferência | Código de bloqueio orçamentário ERR-AUR-429,"A franquia mensal padrão para cada unidade departamental é de **4.500.000 tokens** de inferência, renovada automaticamente no primeiro minuto do dia primeiro de cada mês civil [3]. Quando essa cota se esgota ou ultrapassa o teto da janela móvel, as novas requisições de geração são recusadas com o código de bloqueio **ERR‑AUR‑429** [2].","[3, 2]",,,,,
+04_rrf_k60_bm25_emb_lfm3,e2_rrf_k60_bm25_emb,L05,literal,1,O que determina a diretriz POL-SEG-14 sobre a rede aurora_db_net e a porta 5432?,PostgreSQL opera exclusivamente na rede interna aurora_db_net | Nunca publica a porta 5432 para interfaces externas,"De acordo com o trecho 2 do documento **06_seguranca_criptografia.md** ([1]), a diretriz normativa **POL‑SEG‑14** determina que o serviço de banco de dados PostgreSQL funciona exclusivamente dentro da rede interna **aurora_db_net** e **nunca publica a porta 5432 para interfaces externas**. Isso define a localização obrigatória da rede e a exclusão da exposição da porta 5432 para acesso externo.",[1],,,,,
+04_rrf_k60_bm25_emb_lfm3,e2_rrf_k60_bm25_emb,L06,literal,1,Quando o alerta ALR-LAT-901 é disparado e em qual porta o protocolo OpenTelemetry exporta os rastros?,Exportação OpenTelemetry gRPC na porta 4317 | Disparo de ALR-LAT-901 quando a geração ultrapassa 4500 ms em três amostras seguidas,"O alerta **ALR‑LAT‑901** é disparado quando a **duração isolada da etapa de geração textual no modelo de linguagem** ultrapassa **4500 milissegundos** em três amostras consecutivas [1].  
+Os rastros (métricas coletadas e os traços distribuídos) são exportados continuamente pelo protocolo **OpenTelemetry gRPC** na **porta 4317**, direcionando‑os ao coletor central da infraestrutura [2].","[1, 2]",,,,,
+04_rrf_k60_bm25_emb_lfm3,e2_rrf_k60_bm25_emb,N01,sem_resposta,1,Quais são os parâmetros de resolução em DPI e o idioma padrão do módulo de OCR do aurora-ingest para extrair tabelas de arquivos PDF escaneados?,Abstenção explícita: a base não possui configuração de DPI/idioma de OCR (ou informar que o aurora-ingest aceita apenas .txt/.md UTF-8 e bloqueia arquivos que dependam de OCR).,"Os trechos disponíveis não contêm nenhuma informação sobre os parâmetros de resolução em DPI nem sobre o idioma padrão do módulo de OCR do **aurora‑ingest** para extração de tabelas de arquivos PDF escaneados.  
+
+- O documento [1] menciona apenas que o pipeline aceita exclusivamente arquivos de texto puro e Markdown codificados em UTF‑8, sem referência a DPI ou ao módulo OCR.  
+- Os demais trechos ([2]–[5]) tratam de telemetria, auditoria de conformidade, criptografia e arquitetura geral, também sem menção aos parâmetros de resolução ou ao idioma padrão do OCR.  
+
+Portanto, com base unicamente nas evidências fornecidas, não é possível responder à pergunta.","[1, 2, 5]",,,,,
+04_rrf_k60_bm25_emb_lfm3,e2_rrf_k60_bm25_emb,N02,sem_resposta,1,Quais valores de m e ef_construction são recomendados para calibrar o índice aproximado HNSW no aurora-vectordb em coleções de até 50000 fragmentos?,"Abstenção explícita: a base não contém parâmetros HNSW (m ou ef_construction), pois até 50000 fragmentos o aurora-vectordb utiliza busca exata sem índice ANN.","Com base nas evidências apresentadas:
+
+- O trecho [1] indica que, para coleções institucionais de até 50 000 fragmentos textuais, o **aurora‑vectordb** executa uma varredura exata por distância de cosseno **sem utilizar índices aproximados (ANN)**, garantindo revocação matemática perfeita. [1]
+- O trecho [3] descreve a camada de persistência semântica sobre o motor **aurora‑vectordb**, construído sobre PostgreSQL 16 com suporte a operações algébricas em espaços de alta dimensão. [3]
+- O trecho [4] menciona consultas de expansão de contexto por vizinhança que utilizam um índice composto sobre o identificador do documento e a posição sequencial da sentença, mas não especifica o tipo de índice ou seus parâmetros internos. [4]
+- O trecho [5] fornece apenas uma introdução à arquitetura geral do Núcleo Aurora, sem detalhes sobre implementações específicas de índices aproximados. [5]
+
+Nenhum dos trechos cita ou recomenda valores para os parâmetros **m** (número de vizinhos mais próximos) e **ef_construction** (fator de construção) para calibrar o índice aproximado HNSW no **aurora‑vectordb**. Portanto, **não há evidências suficientes nos documentos fornecidos para indicar esses valores**.
+
+Assim, não é possível responder com base nas fontes disponíveis.","[1, 1, 3, 3, 4, 4, 5, 5]",,,,,
+04_rrf_k60_bm25_emb_lfm3,e2_rrf_k60_bm25_emb,N03,sem_resposta,1,Qual é o percentual de desconto concedido no aurora-billing para laboratórios que aderem ao plano Estudantil Básico com pagamento anual antecipado?,Abstenção explícita: as evidências não mencionam plano Estudantil Básico nem desconto por pagamento anual antecipado.,"Com base nas fontes fornecidas:
+
+- O documento **[1]** descreve o módulo de controle econômico aurora‑billing, mas não menciona descontos ou planos Estudantil Básico.  
+- O documento **[2]** trata da política de disponibilidade e SLAs da Plataforma Núcleo Aurora, sem referência a desconto.  
+- O documento **[3]** fala sobre o serviço de backup, também sem menção a planos ou descontos.  
+- O documento **[4]** apresenta a arquitetura geral da plataforma, sem detalhes de tarifas.  
+- O documento **[5]** refere‑se ao relatório de bilhetagem diário, não ao desconto por plano.
+
+Nenhum trecho entre **[1]**, **[2]**, **[3]**, **[4]** ou **[5]** contém informações sobre o percentual de desconto concedido no aurora‑billing para laboratórios que aderem ao plano Estudantil Básico com pagamento anual antecipado. Portanto, não há evidência suficiente para responder à pergunta.","[1, 2, 3, 4, 5, 1, 2, 3, 4, 5]",,,,,
+04_rrf_k60_bm25_emb_lfm3,e2_rrf_k60_bm25_emb,N04,sem_resposta,1,Qual foi a escalação titular da seleção brasileira na final da Copa do Mundo de 2002 disputada em Yokohama?,Abstenção explícita: informar que as evidências fornecidas na base não contêm informações para responder à pergunta.,"Não disponho de nenhuma evidência nos documentos listados que mencione a escalação titular da Seleção Brasileira na final da Copa do Mundo de 2002, realizada em Yokohama. Portanto, não posso responder à pergunta com base nas fontes fornecidas.",[],,,,,
+04_rrf_k60_bm25_emb_lfm3,e2_rrf_k60_bm25_emb,N05,sem_resposta,1,Qual é a temperatura ideal do forno e o tempo de fermentação natural para assar um panetone artesanal de frutas cristalizadas?,Abstenção explícita: informar que a base documental não possui evidências sobre preparo de panetone.,"Com base nas fontes apresentadas:
+
+- O trecho [1] trata de cálculo de percentis de tempo de resposta em um painel de monitoramento, sem mencionar temperaturas ou fermentação.  
+- O trecho [2] descreve a assinatura de compatibilidade vetorial via SHA‑256, irrelevante ao assar.  
+- O trecho [3] recomenda versões da versão do Python para ambientes Windows, também não relacionado.  
+- O trecho [4] define a Plataforma Núcleo Aurora como um ecossistema corporativo de recuperação e síntese documental, sem qualquer referência a panetone ou fermentação.  
+- O trecho [5] fala sobre bloqueios consultivos bancários durante substituição de documentos, não sobre culinária.
+
+Portanto, nenhuma das evidências fornecidas contém informações sobre a **temperatura ideal do forno** nem o **tempo de fermentação natural** para preparar um *panetone* artesanal de frutas cristalizadas. Não é possível responder à pergunta com os documentos disponíveis.","[1, 2, 3, 4, 5]",,,,,
+04_rrf_k60_bm25_emb_lfm3,e2_rrf_k60_bm25_emb,N06,sem_resposta,1,Como funciona o mecanismo bioquímico de fixação noturna de carbono na fotossíntese CAM de plantas suculentas?,Abstenção explícita: informar que a base não traz evidências sobre fotossíntese CAM ou biologia vegetal.,"Não dispongo de informações que descrevam o mecanismo bioquímico de fixação noturna de carbono na fotossíntese CAM de plantas suculentas. Os trechos fornecidos [1], [2], [3], [4] e [5] tratam de temas completamente diferentes — arquitetura de rede, interfaces de linha de comando, segurança de documentos, configuração de deploy e valores booleanos — e nenhum menciona fotossíntese, fotossíntese CAM, fixação de carbono ou processos biológicos de plantas. Consequentemente, não é possível responder à pergunta com base nas evidências apresentadas.","[1, 2, 3, 4, 5]",,,,,
+04_rrf_k60_bm25_emb_lfm3,e2_rrf_k60_bm25_emb,S01,semantica,1,Como a plataforma garante que uma interrupção brusca durante o cadastramento de um texto não deixe o arquivo salvo pela metade?,Substituição em transação atômica única por documento no banco de dados | Reversão automática (rollback) preservando a versão anterior íntegra,"A plataforma garante que uma interrupção brusca durante o cadastramento de um texto não deixe o arquivo salvo apenas metade, pois o processo de indexação é feito de modo que, caso ocorra uma falha ou interrupção elétrica ou problema com o provedor de embeddings, a escrita é abortada e a versão anterior do arquivo permanece intacta, sem corrupção. Isso é assegurado pelo mecanismo de backup e recuperação descrito no trecho 7 do documento **07_backup_recuperacao.md** [1].",[1],,,,,
+04_rrf_k60_bm25_emb_lfm3,e2_rrf_k60_bm25_emb,S02,semantica,1,De que forma o serviço web impede que um usuário externo descubra endereços de servidores internos ou credenciais ao ocorrer um defeito de comunicação?,Exceções de bibliotecas/SDKs são interceptadas na borda HTTP | Conversão em erro genérico HTTP 503 omitindo URLs e chaves de API,"O serviço web impede que um usuário externo descubra endereços de servidores internos ou credenciais ao utilizar três mecanismos principais:
+
+1. **Proxy reverso Envoy na porta 9443** – Toda a comunicação externa entra exclusivamente por este proxy, que opera na porta 9443, aplica terminação criptográfica mútua e realiza inspeção de cabeçalhos. Assim, os clientes externos só veem a porta pública e não os endereços internos dos serviços [1].
+
+2. **Canais internos de baixa latência para microsserviços** – Dentro do sistema, os serviços trocam mensagens JSON sobre canais internos, garantindo que nenhum objeto proprietário de biblioteca externa atravesse as fronteiras de processo. Isso isola o fluxo interno e impede que informações sensíveis sejam expostas externamente [2].
+
+3. **Verificação de integridade e assinatura vetorial** – Varreduras automatizadas verificam a cada hora se as permissões de arquivos dos certificados e as variáveis de ambiente permanecem restritas ao usuário de serviço sem privilégio de superusuário [3]; além disso, a assinatura de compatibilidade vetorial é gerada por um resumo SHA‑256 que concatena o provedor, o endereço do serviço, o nome do modelo codificador e a dimensionalidade declarada, vinculando a identidade do serviço ao seu endereço específico [5].
+
+Juntando essas camadas, o tráfego externo é interceptado e criptografado pelo Envoy, enquanto o tráfego interno fica isolado e assinado. Dessa forma, um atacante externo não consegue localizar rotas internas nem recuperar credenciais, mesmo diante de falhas de comunicação.","[1, 2, 3, 5]",,,,,
+04_rrf_k60_bm25_emb_lfm3,e2_rrf_k60_bm25_emb,S03,semantica,1,Por que alterar os parâmetros de habilitação de etapas no arquivo de ajuste não modifica imediatamente o comportamento das consultas em andamento?,Ausência de recarga dinâmica (hot-reload) de configuração por requisição | Necessidade de reiniciar explicitamente o processo ou contêiner após editar o YAML,"Alterar os parâmetros de habilitação de etapas no arquivo de ajuste **não** modifica imediatamente o comportamento das consultas já em andamento, pois o sistema não realiza uma recarga dinâmica de configuração durante o atendimento de cada requisição. Consequentemente, qualquer mudança nos *switches* do YAML deve ser aplicada mediante um reinício explícito do processo da aplicação ou do contêiner [5].  
+
+Além disso, os módulos desativados no manifesto operacional não são instanciados em memória e recebem apenas um registro de passagem direta na trilha de execução da consulta [2]; isso significa que a ativação de uma etapa só ocorre quando o módulo é criado, o que requer a reconfiguração completa do processo.  
+
+Portanto, até que o processo seja reiniciado, as consultas em curso continuam sendo executadas com as configurações anteriores, mantendo o comportamento antigo.","[5, 2]",,,,,
+04_rrf_k60_bm25_emb_lfm3,e2_rrf_k60_bm25_emb,S04,semantica,1,Qual é o impacto na cobrança do departamento quando uma pesquisa não localiza nenhum conteúdo útil no acervo e a etapa de redação da resposta é pulada?,Isenção da tarifação de síntese/geração quando não há evidências e o LLM não é chamado | Débito restrito apenas ao custo de codificação da busca vetorial (se utilizada),"Quando uma pesquisa não encontra nenhum conteúdo útil no acervo e a etapa de redação da resposta é omitida, a consulta entra na categoria de “ausência de evidências” descrita nas fontes.  
+
+* De acordo com **[3]**, as consultas que resultam em ausência de evidências na base documental e não acionam o modelo gerador final são **isentas de tarifação de síntese**; elas apenas incidem pelo custo de codificação da busca vetorial.  
+* O mesmo cenário é tratado em **[5]**: quando todos os motores de recuperação de uma rota retornam conjuntos vazios, o coordenador aborta a chamada ao gerador textual e devolve imediatamente uma mensagem padronizada de ausência de lastro documental. Isso significa que não há geração de texto adicional, logo nenhum custo extra por elaboração.  
+
+Portanto, o departamento não será cobrado pela síntese nem pela produção da resposta; o único despeso relevante é o de codificar a busca vetorial.","[3, 5]",,,,,
+04_rrf_k60_bm25_emb_lfm3,e2_rrf_k60_bm25_emb,S05,semantica,1,O que ocorre com os registros já cadastrados na base caso um responsável troque o nome de um documento na pasta ou delete o arquivo do computador?,Trocar o nome ou mover gera novo identificador e duplica registros no banco | Apagar o arquivo do disco não remove automaticamente os trechos já persistidos no PostgreSQL,"Quando um arquivo é removido fisicamente do sistema de arquivos – por exemplo, deletado de uma pasta – **os trechos que já foram gravados no banco de dados (PostgreSQL) não são automaticamente apagados**. A exclusão do arquivo local só elimina a representação no disco; os registros existentes continuam no banco até que uma ação de limpeza administrativa seja realizada [1].  
+
+Além disso, **renomear ou mover um documento altera seu caminho relativo**, o que cria novos identificadores na base de dados. Isso pode gerar duplicatas de registros se o banco não for limpo adequadamente, pois cada novo caminho resulta em uma entrada distinta e requer intervenção manual para evitar redundâncias [4].  
+
+Portanto, ao trocar o nome de um arquivo dentro de uma pasta ou deletar o arquivo do computador, os registros já cadastrados permanecem no banco e devem ser removidos ou sincronizados manualmente para evitar inconsistências ou duplicações.","[1, 4]",,,,,
+04_rrf_k60_bm25_emb_lfm3,e2_rrf_k60_bm25_emb,S06,semantica,1,Por qual motivo as equipes de teste são impedidas de adotar os próprios textos produzidos pelo assistente automatizado como padrão de resposta correta?,A norma POL-AUD-03 proíbe usar a saída do próprio sistema como gabarito para preservar o rigor científico da avaliação,"As equipes de teste não podem adotar os textos que o assistente automatizado gera como padrão de resposta correta porque **a norma POL‑AUD‑03 proíbe estritamente o uso da própria resposta do sistema como gabarito de referência** [1].  
+
+Além disso, há orientações de segurança que exigem tratar os trechos recuperados como **dados não confiáveis**, já que “documentos ingeridos na base de conhecimento podem conter instruções maliciosas de injeção de comando” e o prompt de sistema ordena que o modelo trate esses trechos como não confiáveis [3].  
+
+Por fim, **auditores independentes podem inspecionar a fidelidade factual das respostas**, verificando se cada afirmação textual está sustentada literalmente pela fonte indicada no marcador numérico [4].  
+
+Portanto, adotar o próprio texto gerado sem validação externa violaria rigor científico, segurança e auditoria, conforme estabelecido pelas normas e diretrizes apresentadas.","[1, 3, 4]",,,,,
