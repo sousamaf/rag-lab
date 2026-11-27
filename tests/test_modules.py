@@ -106,3 +106,50 @@ def test_bm25_idf_variants_differ_and_lucene_stays_positive(services):
     okapi = run_bm25(services, "RAG")["retrieval"]["bm25"]
     assert lucene and lucene[0]["score"] > 0
     assert not okapi or okapi[0]["score"] != lucene[0]["score"]
+
+
+def test_bm25_classic_idf_is_zero_for_term_in_every_document(services):
+    services.store.chunks = services.store.chunks[:1]
+    bm25_with(services, idf="classic")
+    assert run_bm25(services, "RAG")["retrieval"]["bm25"] == []
+
+
+def test_bm25_classic_idf_scores_rare_terms(services):
+    bm25_with(services, idf="classic")
+    ranking = run_bm25(services, "lexical")["retrieval"]["bm25"]
+    assert [item["id"] for item in ranking] == ["b"]
+    assert ranking[0]["score"] > 0
+
+
+def common_word_chunks(services):
+    from rag_lab.contracts import Chunk
+
+    texts = [
+        "de busca rara zebra",
+        "de outra frase comum",
+        "de mais uma frase",
+        "de texto qualquer aqui",
+    ]
+    services.store.chunks = [
+        Chunk(id=str(i), document_id="d", source="d.txt", position=i, text=t)
+        for i, t in enumerate(texts)
+    ]
+
+
+def test_bm25_min_idf_zero_keeps_every_query_term(services):
+    common_word_chunks(services)
+    result = run_bm25(services, "de")
+    assert len(result["retrieval"]["bm25"]) == 4
+    assert result["attributes"]["bm25"]["termos_ignorados"] == 0
+
+
+def test_bm25_min_idf_ignores_common_terms_but_keeps_rare_ones(services):
+    common_word_chunks(services)
+    bm25_with(services, min_idf=1.0)
+    only_common = run_bm25(services, "de")
+    assert only_common["retrieval"]["bm25"] == []
+    assert only_common["attributes"]["bm25"]["termos_ignorados"] == 1
+    mixed = run_bm25(services, "de zebra")
+    assert [item["id"] for item in mixed["retrieval"]["bm25"]] == ["0"]
+    assert mixed["attributes"]["bm25"]["min_idf"] == 1.0
+    assert mixed["attributes"]["bm25"]["termos_ignorados"] == 1
