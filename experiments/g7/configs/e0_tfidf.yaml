@@ -1,0 +1,39 @@
+# G7 Experimento E0 — Baseline Individual: TF-IDF
+database_url: ${DATABASE_URL:-postgresql://rag:rag@localhost:5432/rag_g7}
+
+llm:
+  provider: ollama
+  base_url: ${OLLAMA_BASE_URL:-http://localhost:11434}
+  model: llama3.2:3b
+  api_key_env: LLM_API_KEY
+  temperature: 0.0
+  timeout: 120
+
+embeddings:
+  provider: ollama
+  base_url: ${OLLAMA_BASE_URL:-http://localhost:11434}
+  model: nomic-embed-text
+  api_key_env: EMBEDDING_API_KEY
+  dimensions: 768
+  timeout: 120
+
+pipeline:
+  top_k: 5
+  candidate_k: 12
+  rrf_k: 60
+  expanded_queries: 3
+  sentence_radius: 1
+  max_context_chars: 12000
+  max_sentence_chars: 1000
+
+modules:
+  multi_query: {enabled: false}
+  hyde: {enabled: false}
+  decomposicao: {enabled: false}
+  tfidf: {enabled: true}
+  bm25: {enabled: false}
+  embedding: {enabled: false}
+  hybrid: {enabled: false}
+  reranking: {enabled: false}
+  sentence: {enabled: false}
+  compressao: {enabled: false}
