@@ -1,0 +1,6 @@
+O índice invertido associa cada termo à lista de documentos em que ele aparece.
+Essa estrutura permite responder a uma consulta lendo apenas as listas dos termos pedidos, sem percorrer todos os documentos da coleção, o que é essencial quando o corpus tem milhões de textos.
+A frequência de documento de um termo é o número de documentos que o contêm e alimenta o cálculo do IDF.
+Cada entrada da lista também pode guardar a frequência do termo naquele documento e as posições onde ele ocorre.
+Atualizar o índice a cada novo documento custa mais do que apenas consultá-lo.
+No laboratório, o índice é reconstruído em memória a cada consulta porque a base é pequena.

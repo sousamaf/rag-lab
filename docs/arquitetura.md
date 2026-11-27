@@ -77,6 +77,16 @@ A alteração do catálogo se aplica à próxima ingestão. Reingerir a mesma pa
 a configuração de embeddings da base recalcula os rótulos e substitui atômica e
 individualmente os documentos ingeridos.
 
+### BM25 (G5)
+
+`modules.bm25` aceita, além de `enabled`, `k1` (padrão 1.5), `b` (0.75) e `idf`
+(`lucene`, padrão, sempre positivo; `okapi`, o IDF da biblioteca `rank_bm25`; ou `classic`,
+`log(N/n)`, que zera termos presentes em todos os documentos). `min_idf` (padrão 0, desligado)
+ignora os termos da consulta com IDF menor que o valor, o que equivale a uma remoção de
+stopwords calculada a partir do corpus.
+Quando ativo, grava em `attributes.bm25` os parâmetros usados, `termos_ignorados`, nº de trechos,
+comprimento médio (`avgdl`), nº de consultas e de resultados, para comparar execuções.
+
 ## Ativação e bypass
 
 Os dez switches são obrigatórios no YAML. Nomes desconhecidos e tipos incorretos são

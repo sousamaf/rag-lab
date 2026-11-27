@@ -1,0 +1,4 @@
+TF-IDF multiplica a frequência do termo no documento pelo IDF do termo no corpus.
+Na versão vetorial, cada documento vira um vetor e a similaridade com a consulta é o cosseno do ângulo entre os vetores.
+Diferente do BM25, o TF-IDF clássico não satura a frequência: repetir uma palavra muitas vezes continua aumentando o peso, e documentos longos tendem a ser favorecidos ou exigem normalização por norma do vetor.
+O BM25 pode ser visto como um refinamento do TF-IDF com saturação do termo e normalização explícita pelo tamanho do documento.

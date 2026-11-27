@@ -1,0 +1,3 @@
+Embeddings transformam textos em vetores. Textos com significado parecido ficam próximos no espaço vetorial, mesmo sem palavras em comum.
+A busca semântica compara o vetor da pergunta com os vetores dos trechos usando similaridade de cosseno.
+Modelos de embedding diferentes produzem dimensões diferentes, e trocar o modelo exige reingerir os documentos.

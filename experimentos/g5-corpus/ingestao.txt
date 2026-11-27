@@ -1,0 +1,4 @@
+A ingestão lê arquivos de texto, divide em sentenças e grava cada trecho no banco de dados. Cada trecho recebe um identificador, a fonte e a posição no documento.
+Uma boa divisão evita trechos longos demais, pois a busca lexical penaliza documentos extensos quando a normalização de tamanho está ativa. Trechos muito curtos perdem contexto.
+A ingestão também pode classificar cada trecho por tema, usando um catálogo de termos ou um modelo de linguagem.
+Reingerir a mesma pasta substitui os documentos já gravados sem duplicar trechos.

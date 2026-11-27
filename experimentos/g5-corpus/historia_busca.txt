@@ -1,0 +1,5 @@
+O BM25 surgiu da pesquisa em recuperação de informação conduzida por Stephen Robertson e colegas.
+A função foi desenvolvida no sistema Okapi, na City University de Londres, e avaliada nas conferências TREC durante a década de 1990.
+O nome BM25 vem de "Best Match 25", a vigésima quinta variação da fórmula de ponderação testada pelo grupo.
+Desde as versões 6 do Lucene e 5 do Elasticsearch, o BM25 é o algoritmo de relevância padrão dessas ferramentas, substituindo o TF-IDF clássico.
+O padrão do Lucene usa uma variante do IDF que nunca fica negativa.

@@ -157,3 +157,16 @@ def test_pipeline_without_hybrid_uses_round_robin_and_leaves_hybrid_bypassed(ser
     assert result.evidence
     assert "hybrid" not in result.evidence[0].scores
 
+
+def test_bm25_metrics_reach_response_and_disappear_on_bypass(services):
+    services.settings = with_modules(services.settings, "bm25")
+    result = Pipeline(services).run(Envelope(question="RAG", attributes={"grupo": "G5"}))
+    payload = json.loads(result.model_dump_json())
+    assert payload["attributes"]["grupo"] == "G5"
+    assert payload["attributes"]["bm25"]["hits"] == 1
+    assert [t["status"] for t in payload["trace"] if t["module"] == "bm25"] == ["executed"]
+
+    services.settings = with_modules(services.settings, "embedding")
+    bypassed = Pipeline(services).run(Envelope(question="RAG"))
+    assert "bm25" not in bypassed.attributes
+    assert [t["status"] for t in bypassed.trace if t["module"] == "bm25"] == ["bypass"]

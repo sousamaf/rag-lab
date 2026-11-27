@@ -1,0 +1,5 @@
+Alucinação é quando o modelo de linguagem afirma algo que não está sustentado pelas evidências nem pela realidade.
+O RAG reduz esse risco ao fornecer trechos recuperados como base da resposta, mas não o elimina.
+Se a recuperação traz trechos irrelevantes, o modelo pode usá-los mesmo assim e produzir uma resposta fluente porém errada, com citações que parecem corretas e não sustentam a afirmação.
+Citar a fonte permite que o leitor confira a afirmação.
+Quando não há evidência suficiente, a resposta correta é reconhecer que a base não contém a informação.
