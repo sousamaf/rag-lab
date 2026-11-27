@@ -47,3 +47,62 @@ def test_bm25_single_document_still_finds_term(services):
     payload = Envelope(question="RAG", queries=["RAG"]).model_dump()
     result = BM25().run(payload, services)
     assert result["retrieval"]["bm25"][0]["score"] > 0
+
+
+def run_bm25(services, *queries):
+    payload = Envelope(question=queries[0], queries=list(queries)).model_dump()
+    return BM25().run(payload, services)
+
+
+def test_bm25_ranks_chunk_with_query_term_first(services):
+    result = run_bm25(services, "busca lexical")
+    ranking = result["retrieval"]["bm25"]
+    assert [item["id"] for item in ranking] == ["b"]
+    assert ranking[0]["scores"]["bm25"] == ranking[0]["score"] > 0
+
+
+def test_bm25_multi_query_keeps_best_score_per_chunk(services):
+    result = run_bm25(services, "RAG", "busca lexical")
+    assert {item["id"] for item in result["retrieval"]["bm25"]} == {"a", "b"}
+
+
+def test_bm25_respects_candidate_k(services):
+    services.settings.pipeline.candidate_k = 1
+    services.settings.pipeline.top_k = 1
+    result = run_bm25(services, "RAG busca embeddings")
+    assert len(result["retrieval"]["bm25"]) == 1
+
+
+def bm25_with(services, **options):
+    data = services.settings.model_dump()
+    data["modules"]["bm25"].update(options)
+    services.settings = type(services.settings).model_validate(data)
+
+
+def test_bm25_defaults_are_reported_in_attributes(services):
+    metrics = run_bm25(services, "RAG")["attributes"]["bm25"]
+    assert (metrics["k1"], metrics["b"], metrics["idf"]) == (1.5, 0.75, "lucene")
+    assert metrics["chunks"] == 3 and metrics["hits"] == 1
+
+
+def test_bm25_parameters_change_scores(services):
+    base = run_bm25(services, "RAG")["retrieval"]["bm25"][0]["score"]
+    bm25_with(services, k1=3.0)
+    assert run_bm25(services, "RAG")["retrieval"]["bm25"][0]["score"] != base
+
+
+def test_bm25_b_zero_disables_length_normalization(services):
+    bm25_with(services, b=0.0)
+    scores = {
+        item["id"]: item["score"] for item in run_bm25(services, "RAG busca")["retrieval"]["bm25"]
+    }
+    assert scores["a"] == scores["b"]
+
+
+def test_bm25_idf_variants_differ_and_lucene_stays_positive(services):
+    services.store.chunks = services.store.chunks[:1]
+    lucene = run_bm25(services, "RAG")["retrieval"]["bm25"]
+    bm25_with(services, idf="okapi")
+    okapi = run_bm25(services, "RAG")["retrieval"]["bm25"]
+    assert lucene and lucene[0]["score"] > 0
+    assert not okapi or okapi[0]["score"] != lucene[0]["score"]
